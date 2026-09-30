@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  attendance-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: firex-attendance-prod
+    restart: always
+    ports:
+      - "5050:5050"
+    environment:
+      - NODE_ENV=production
+      - PORT=5050
+      - JWT_SECRET=firex-attendance-production-super-secret-key-2026
+      - TIMEZONE=Asia/Bahrain
+    volumes:
+      - attendance-data:/app/server/data
+
+volumes:
+  attendance-data:
+    driver: local

@@ -1,0 +1,479 @@
+{
+  "settings": {
+    "id": "settings-1",
+    "company_name": "FIREX",
+    "country": "Bahrain",
+    "timezone": "Asia/Bahrain",
+    "work_start_time": "07:30",
+    "work_end_time": "16:30",
+    "grace_period_minutes": 15,
+    "gps_enabled": true,
+    "gps_enforcement_enabled": false,
+    "default_radius": 100,
+    "created_at": "2026-09-28T13:14:36.929Z",
+    "updated_at": "2026-09-28T16:53:57.972Z"
+  },
+  "sites": [
+    {
+      "id": "site-1",
+      "site_code": "SITE-HO",
+      "site_name": "FIREX Main Workshop & HQ",
+      "address": "Villa 13, Building 2373, Road 2831, Block 428",
+      "area": "Al Seef, Bahrain",
+      "latitude": 26.2415,
+      "longitude": 50.5368,
+      "allowed_radius": 150,
+      "status": "Active",
+      "remarks": "Main Central Workshop & Warehouse",
+      "created_at": "2026-01-01T08:00:00.000Z",
+      "updated_at": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "site-2",
+      "site_code": "SITE-ABC",
+      "site_name": "Project ABC - Commercial Tower",
+      "address": "Building 1024, Road 36, Diplomatic Area",
+      "area": "Manama, Bahrain",
+      "latitude": 26.2361,
+      "longitude": 50.5831,
+      "allowed_radius": 200,
+      "status": "Active",
+      "remarks": "Fire sprinkler and alarm installation site",
+      "created_at": "2026-02-01T08:00:00.000Z",
+      "updated_at": "2026-02-01T08:00:00.000Z"
+    },
+    {
+      "id": "site-3",
+      "site_code": "SITE-XYZ",
+      "site_name": "Customer XYZ Industrial Plant",
+      "address": "Gate 4, Industrial Area 3",
+      "area": "Hidd / Alba Area, Bahrain",
+      "latitude": 26.1265,
+      "longitude": 50.6092,
+      "allowed_radius": 250,
+      "status": "Active",
+      "remarks": "Hydrant & suppression maintenance project",
+      "created_at": "2026-02-15T08:00:00.000Z",
+      "updated_at": "2026-02-15T08:00:00.000Z"
+    },
+    {
+      "id": "site-1790775009692",
+      "site_code": "SITE-9692",
+      "site_name": "Project Bahrain Bay Tower",
+      "address": "Bahrain",
+      "area": "Bahrain",
+      "latitude": 26.2415,
+      "longitude": 50.5368,
+      "allowed_radius": 150,
+      "status": "Active",
+      "remarks": "Auto-created during employee onboarding",
+      "created_at": "2026-09-30T13:30:09.692Z",
+      "updated_at": "2026-09-30T13:30:09.692Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-eng",
+      "name": "HASAN ZULAIKH",
+      "email": "engineer@firex.com",
+      "username": "engineer",
+      "password_hash": "$2a$10$VI3Tw.f1K655ZxfiP25VZupEOaeJhDgyj/GmwhLI82Gw5rS0TLUdq",
+      "phone": "38837080",
+      "role": "ENGINEER",
+      "employee_id": "ENG-0001",
+      "status": "Active",
+      "created_at": "2026-01-01T08:00:00.000Z",
+      "updated_at": "2026-09-30T13:33:01.717Z"
+    },
+    {
+      "id": "usr-sup",
+      "name": "Sarath Kr",
+      "email": "supervisor@firex.com",
+      "username": "supervisor",
+      "password_hash": "$2a$10$.BQ7GVpXQnJr4zK7IWyEauAB6um0w/Kl1NmNl40Hz/7qRJa/2hN/a",
+      "phone": "+973 39027232",
+      "role": "SUPERVISOR",
+      "employee_id": "SUP-0001",
+      "status": "Active",
+      "created_at": "2026-01-01T08:00:00.000Z",
+      "updated_at": "2026-09-30T13:33:39.042Z"
+    },
+    {
+      "id": "usr-1790775009695-g302",
+      "name": "Test Labour Worker",
+      "email": "test.labour@firex.com",
+      "username": "test.labour",
+      "password_hash": "$2a$10$x8nTu9Ugx4V8bAbrV5ZOMOTSd/Jn3nj5qRVJ7KvOeJCgKk2IMzXxa",
+      "phone": "+973 3999 8888",
+      "role": "LABOUR",
+      "employee_id": "LAB-0001",
+      "status": "Active",
+      "created_at": "2026-09-30T13:30:09.776Z",
+      "updated_at": "2026-09-30T13:30:09.776Z"
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp-1790775009777-hwyi",
+      "user_id": "usr-1790775009695-g302",
+      "employee_id": "LAB-0001",
+      "full_name": "Test Labour Worker",
+      "mobile": "+973 3999 8888",
+      "email": "test.labour@firex.com",
+      "department": "Field Operations",
+      "designation": "Safety Technician",
+      "supervisor_id": null,
+      "supervisor_name": "Unassigned",
+      "site_id": "site-1790775009692",
+      "site_name": "Project Bahrain Bay Tower",
+      "joining_date": "2026-09-30",
+      "status": "Active",
+      "remarks": "",
+      "created_at": "2026-09-30T13:30:09.777Z",
+      "updated_at": "2026-09-30T13:30:09.777Z"
+    }
+  ],
+  "attendance": [
+    {
+      "id": "att-1790775009880-iwcc",
+      "employee_id": "LAB-0001",
+      "user_id": "usr-1790775009695-g302",
+      "employee_name": "Test Labour Worker",
+      "site_id": "site-1790775009692",
+      "site_name": "Project Bahrain Bay Tower",
+      "supervisor_id": null,
+      "supervisor_name": "Unassigned",
+      "attendance_date": "2026-09-30",
+      "punch_in": "2026-09-30T13:30:09.880Z",
+      "punch_out": "2026-09-30T13:30:09.887Z",
+      "punch_in_display": "04:30 PM",
+      "punch_out_display": "04:30 PM",
+      "status": "Present - Late",
+      "total_minutes": 0,
+      "total_hours_formatted": "0h 00m",
+      "punch_in_latitude": 26.2415,
+      "punch_in_longitude": 50.5368,
+      "punch_in_accuracy": 10,
+      "punch_in_distance_meters": 0,
+      "punch_out_latitude": 26.2415,
+      "punch_out_longitude": 50.5368,
+      "punch_out_accuracy": 10,
+      "punch_in_selfie": null,
+      "punch_out_selfie": null,
+      "device_info": "Node Test Client",
+      "client_event_id": null,
+      "client_timestamp": "2026-09-30T13:30:09.880Z",
+      "server_timestamp": "2026-09-30T13:30:09.880Z",
+      "tamper_flag": false,
+      "clock_skew_seconds": 0,
+      "sync_status": "SYNCED",
+      "is_manual": false,
+      "created_at": "2026-09-30T13:30:09.881Z",
+      "updated_at": "2026-09-30T13:30:09.887Z",
+      "punch_out_distance_meters": 0
+    }
+  ],
+  "attendance_corrections": [],
+  "attendance_audit": [
+    {
+      "id": "aud-1790775219044-sxgp7",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "USER_UPDATED",
+      "old_value": {
+        "name": "Tariq Mahmoud",
+        "username": "supervisor",
+        "role": "SUPERVISOR"
+      },
+      "new_value": {
+        "name": "Sarath Kr",
+        "username": "supervisor",
+        "role": "SUPERVISOR"
+      },
+      "reason": "User account updated by HASAN ZULAIKH",
+      "changed_by": "usr-eng",
+      "changed_by_name": "HASAN ZULAIKH",
+      "changed_at": "2026-09-30T13:33:39.044Z"
+    },
+    {
+      "id": "aud-1790775181720-cmgul",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "USER_UPDATED",
+      "old_value": {
+        "name": "David Chen, PE",
+        "username": "engineer",
+        "role": "ENGINEER"
+      },
+      "new_value": {
+        "name": "HASAN ZULAIKH",
+        "username": "engineer",
+        "role": "ENGINEER"
+      },
+      "reason": "User account updated by David Chen, PE",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-30T13:33:01.720Z"
+    },
+    {
+      "id": "aud-1790775009940-zqdxb",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "DATABASE_BACKUP_CREATED",
+      "old_value": null,
+      "new_value": {
+        "filename": "backup_firex_2026-09-30T13-30-09-938Z.json"
+      },
+      "reason": "Manual cloud backup created by David Chen, PE",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-30T13:30:09.940Z"
+    },
+    {
+      "id": "aud-1790775009924-v6lb3",
+      "attendance_id": null,
+      "employee_id": "LAB-0001",
+      "action": "LEAVE_APPROVED",
+      "old_value": {
+        "status": "Pending"
+      },
+      "new_value": {
+        "status": "Approved",
+        "reviewed_by": "David Chen, PE",
+        "reviewed_at": "2026-09-30T13:30:09.923Z"
+      },
+      "reason": "Leave approved by management",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-30T13:30:09.924Z"
+    },
+    {
+      "id": "aud-1790775009909-yqh1x",
+      "attendance_id": null,
+      "employee_id": "LAB-0001",
+      "action": "LEAVE_REQUESTED",
+      "old_value": null,
+      "new_value": {
+        "leave_id": "leave-1790775009908-vp8b",
+        "leave_type": "Annual Leave",
+        "start_date": "2026-11-01",
+        "end_date": "2026-11-05",
+        "totalDays": 5
+      },
+      "reason": "Leave request submitted: Automated test vacation leave request",
+      "changed_by": "usr-1790775009695-g302",
+      "changed_by_name": "Test Labour Worker",
+      "changed_at": "2026-09-30T13:30:09.909Z"
+    },
+    {
+      "id": "aud-1790775009889-agelu",
+      "attendance_id": "att-1790775009880-iwcc",
+      "employee_id": "LAB-0001",
+      "action": "PUNCH_OUT",
+      "old_value": {
+        "punch_out": null,
+        "status": "Present - Late"
+      },
+      "new_value": {
+        "punch_out": "04:30 PM",
+        "total_hours": "0h 00m",
+        "status": "Present - Late"
+      },
+      "reason": "Labour mobile punch out",
+      "changed_by": "usr-1790775009695-g302",
+      "changed_by_name": "Test Labour Worker (LABOUR)",
+      "changed_at": "2026-09-30T13:30:09.889Z"
+    },
+    {
+      "id": "aud-1790775009882-in4er",
+      "attendance_id": "att-1790775009880-iwcc",
+      "employee_id": "LAB-0001",
+      "action": "PUNCH_IN",
+      "old_value": null,
+      "new_value": {
+        "punch_in": "04:30 PM",
+        "status": "Present - Late",
+        "date": "2026-09-30",
+        "tamper": false
+      },
+      "reason": "Labour mobile punch in",
+      "changed_by": "usr-1790775009695-g302",
+      "changed_by_name": "Test Labour Worker (LABOUR)",
+      "changed_at": "2026-09-30T13:30:09.882Z"
+    },
+    {
+      "id": "aud-1790775009778-ujmhx",
+      "attendance_id": null,
+      "employee_id": "LAB-0001",
+      "action": "EMPLOYEE_CREATED",
+      "old_value": null,
+      "new_value": {
+        "full_name": "Test Labour Worker",
+        "employee_id": "LAB-0001",
+        "site_name": "Project Bahrain Bay Tower",
+        "role": "LABOUR"
+      },
+      "reason": "New employee onboarded",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-30T13:30:09.778Z"
+    },
+    {
+      "id": "aud-1790774979569-fdq4u",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "DATABASE_BACKUP_CREATED",
+      "old_value": null,
+      "new_value": {
+        "filename": "backup_firex_2026-09-30T13-29-39-567Z.json"
+      },
+      "reason": "Manual cloud backup created by David Chen, PE",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-30T13:29:39.569Z"
+    },
+    {
+      "id": "aud-1790614437980-k5at5",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "SETTINGS_UPDATED",
+      "old_value": {
+        "id": "settings-1",
+        "company_name": "FIREX",
+        "country": "Bahrain",
+        "timezone": "Asia/Bahrain",
+        "work_start_time": "07:00",
+        "work_end_time": "17:00",
+        "grace_period_minutes": 15,
+        "gps_enabled": true,
+        "gps_enforcement_enabled": false,
+        "default_radius": 100,
+        "created_at": "2026-09-28T13:14:36.929Z",
+        "updated_at": "2026-09-28T13:14:36.931Z"
+      },
+      "new_value": {
+        "id": "settings-1",
+        "company_name": "FIREX",
+        "country": "Bahrain",
+        "timezone": "Asia/Bahrain",
+        "work_start_time": "07:30",
+        "work_end_time": "16:30",
+        "grace_period_minutes": 15,
+        "gps_enabled": true,
+        "gps_enforcement_enabled": false,
+        "default_radius": 100,
+        "created_at": "2026-09-28T13:14:36.929Z",
+        "updated_at": "2026-09-28T16:53:57.972Z"
+      },
+      "reason": "Company attendance rules and settings updated by Engineer",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-28T16:53:57.980Z"
+    },
+    {
+      "id": "aud-1790603451921-6issl",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "ALL_EMPLOYEES_PURGED",
+      "old_value": null,
+      "new_value": null,
+      "reason": "All 1 labour employee records and past attendance wiped for fresh onboarding",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-28T13:50:51.921Z"
+    },
+    {
+      "id": "aud-1790603425803-eo4h1",
+      "attendance_id": null,
+      "employee_id": "LAB-101",
+      "action": "EMPLOYEE_CREATED",
+      "old_value": null,
+      "new_value": {
+        "full_name": "Ali Khan",
+        "employee_id": "LAB-101",
+        "site_name": "Unassigned",
+        "role": "LABOUR"
+      },
+      "reason": "New employee onboarded",
+      "changed_by": "usr-eng",
+      "changed_by_name": "David Chen, PE",
+      "changed_at": "2026-09-28T13:50:25.803Z"
+    },
+    {
+      "id": "aud-init",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "SYSTEM_INITIALIZED",
+      "old_value": null,
+      "new_value": null,
+      "reason": "Database prepared for fresh real employee onboarding",
+      "changed_by": "usr-eng",
+      "changed_by_name": "Engineer (Admin)",
+      "changed_at": "2026-09-28T13:47:00.000Z"
+    }
+  ],
+  "leaves": [
+    {
+      "id": "leave-sample-1",
+      "employee_id": "LAB-0003",
+      "employee_name": "Suresh Patel",
+      "user_id": "usr-lab-3",
+      "leave_type": "Annual Leave",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-09",
+      "total_days": 5,
+      "reason": "Annual family vacation",
+      "status": "Pending",
+      "reviewed_by": null,
+      "reviewed_by_name": null,
+      "reviewed_at": null,
+      "rejection_reason": null,
+      "created_at": "2026-09-28T09:00:00.000Z",
+      "updated_at": "2026-09-28T09:00:00.000Z"
+    },
+    {
+      "id": "leave-1790775009908-vp8b",
+      "employee_id": "LAB-0001",
+      "employee_name": "Test Labour Worker",
+      "user_id": "usr-1790775009695-g302",
+      "leave_type": "Annual Leave",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-05",
+      "total_days": 5,
+      "reason": "Automated test vacation leave request",
+      "status": "Approved",
+      "reviewed_by": "usr-eng",
+      "reviewed_by_name": "David Chen, PE",
+      "reviewed_at": "2026-09-30T13:30:09.923Z",
+      "rejection_reason": null,
+      "created_at": "2026-09-30T13:30:09.908Z",
+      "updated_at": "2026-09-30T13:30:09.923Z"
+    }
+  ],
+  "backup_logs": [
+    {
+      "id": "bak-1790775009939",
+      "filename": "backup_firex_2026-09-30T13-30-09-938Z.json",
+      "records_count": 4,
+      "size_bytes": 13234,
+      "created_at": "2026-09-30T13:30:09.939Z",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "bak-1790774979568",
+      "filename": "backup_firex_2026-09-30T13-29-39-567Z.json",
+      "records_count": 1,
+      "size_bytes": 6204,
+      "created_at": "2026-09-30T13:29:39.568Z",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "bak-init",
+      "filename": "attendance_database_init.json",
+      "records_count": 7,
+      "size_bytes": 4096,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "status": "SUCCESS"
+    }
+  ]
+}
