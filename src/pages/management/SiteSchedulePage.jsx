@@ -364,28 +364,30 @@ export function SiteSchedulePage() {
           </span>
         </div>
 
-        {/* Quick site chips */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-            Quick Site Select (or type custom name below):
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {data.recent_sites.map((siteName) => (
-              <button
-                key={siteName}
-                type="button"
-                onClick={() => setBulkSiteInput(siteName)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
-                  bulkSiteInput === siteName
-                    ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                    : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                📍 {siteName}
-              </button>
-            ))}
+        {/* Dynamic recent site chips if any */}
+        {data.recent_sites && data.recent_sites.length > 0 && (
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+              Recently Used Sites (Click to pick or type below):
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {data.recent_sites.map((siteName) => (
+                <button
+                  key={siteName}
+                  type="button"
+                  onClick={() => setBulkSiteInput(siteName)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+                    bulkSiteInput === siteName
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  📍 {siteName}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Bulk Input and Submit Button */}
         <form onSubmit={handleBulkAssign} className="flex flex-col sm:flex-row items-center gap-3 pt-1">

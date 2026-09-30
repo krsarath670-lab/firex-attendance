@@ -67,15 +67,11 @@ router.get('/', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
   const projectWorkers = allEmployees.filter((e) => e.department === 'Project').length;
   const maintenanceWorkers = allEmployees.filter((e) => e.department === 'Maintenance').length;
 
-  // Retrieve list of unique recent site names
+  // Retrieve list of unique dynamic site names from schedules and sites table
   const recentSitesSet = new Set();
-  // Add preset common Bahrain sites
-  ['Al Seef Commercial Tower', 'BAPCO Modernization Site', 'Diplomatic Area Office', 'Hidd Industrial Facility', 'Reef Island Luxury Villa', 'Amwaj Islands Maintenance'].forEach((s) => recentSitesSet.add(s));
-  // Add sites from DB sites table
   (db.get('sites') || []).forEach((s) => {
     if (s.site_name) recentSitesSet.add(s.site_name);
   });
-  // Add sites from schedules
   allSchedules.forEach((s) => {
     if (s.site_name) recentSitesSet.add(s.site_name);
   });
@@ -153,6 +149,18 @@ router.post('/bulk-assign', requireAuth, requireRole(MANAGEMENT_ROLES), (req, re
 
   db.set('daily_schedules', allSchedules);
 
+  // Dynamic site register
+  const existingSites = db.get('sites') || [];
+  if (!existingSites.some((s) => s.site_name?.toLowerCase() === cleanSiteName.toLowerCase())) {
+    db.insert('sites', {
+      id: `site-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      site_code: `SITE-${Date.now().toString().slice(-4)}`,
+      site_name: cleanSiteName,
+      status: 'Active',
+      remarks: 'Added via daily scheduling',
+    });
+  }
+
   db.audit({
     action: 'BULK_SITE_SCHEDULED',
     reason: `Assigned site "${cleanSiteName}" to ${assignedCount} worker(s) for ${date}`,
@@ -220,6 +228,18 @@ router.put('/assign', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => 
   }
 
   db.set('daily_schedules', allSchedules);
+
+  // Dynamic site register
+  const existingSites = db.get('sites') || [];
+  if (!existingSites.some((s) => s.site_name?.toLowerCase() === cleanSiteName.toLowerCase())) {
+    db.insert('sites', {
+      id: `site-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      site_code: `SITE-${Date.now().toString().slice(-4)}`,
+      site_name: cleanSiteName,
+      status: 'Active',
+      remarks: 'Added via daily scheduling',
+    });
+  }
 
   db.audit({
     employee_id,
