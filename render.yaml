@@ -3,8 +3,8 @@ services:
     name: firex-attendance
     runtime: node
     plan: free
-    region: frankfurt # or oregon / singapore / ohio
-    buildCommand: npm install && npm run build
+    region: frankfurt
+    buildCommand: npm install --include=dev && npm run build
     startCommand: node server/index.js
     healthCheckPath: /api/health
     autoDeploy: true
@@ -15,5 +15,3 @@ services:
         value: Asia/Bahrain
       - key: JWT_SECRET
         generateValue: true
-      - key: PORT
-        value: 10000
