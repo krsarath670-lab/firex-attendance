@@ -369,7 +369,15 @@ export function LabourHome() {
                     <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono">
                       <span className="text-rose-400 font-bold">{user?.employee_id || 'LAB-XXXX'}</span>
                       <span>•</span>
-                      <span>{employeeProfile?.designation || 'Labour Worker'}</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                          employeeProfile?.department === 'Maintenance'
+                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                            : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                        }`}
+                      >
+                        {employeeProfile?.department || 'Project'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -377,10 +385,21 @@ export function LabourHome() {
                 <StatusBadge status={todayData?.record?.status || (hasApprovedLeave ? 'Leave' : 'Absent')} />
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-[11px]">
-                <div className="flex items-center space-x-1.5 text-slate-300">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
-                  <span className="truncate">{employeeProfile?.site_name || 'Assigned Site'}</span>
+              {/* Today's Scheduled Site Banner */}
+              <div className="p-3 bg-gradient-to-r from-slate-950 via-slate-950 to-slate-900 border border-slate-800 rounded-2xl space-y-1">
+                <div className="text-[10px] uppercase tracking-wider font-bold text-rose-400 flex items-center space-x-1">
+                  <MapPin className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                  <span>Today's Scheduled Work Site:</span>
+                </div>
+                <div className="text-sm font-black text-white truncate">
+                  {todayData?.scheduled_site_name || employeeProfile?.site_name || 'Assigned Daily Site'}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800 text-[11px]">
+                <div className="flex items-center space-x-1.5 text-slate-300 truncate">
+                  <span className="text-slate-500 font-mono text-[10px]">Supervisor:</span>
+                  <span className="truncate">{employeeProfile?.supervisor_name || 'Assigned'}</span>
                 </div>
                 <div className="flex items-center space-x-1.5 text-slate-400 justify-end">
                   <Calendar className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />

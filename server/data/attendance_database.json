@@ -110,6 +110,19 @@
       "status": "Active",
       "created_at": "2026-09-30T13:30:09.776Z",
       "updated_at": "2026-09-30T13:30:09.776Z"
+    },
+    {
+      "id": "usr-1790792426036-87wk",
+      "name": "Test Project Worker",
+      "email": "labtest5517@firex.com",
+      "username": "labtest5517",
+      "password_hash": "$2a$10$9pTT5sGwQCJxntu78sK45ekZZrJyq5/pNay8ntDWxGdxZA5Tvvu.q",
+      "phone": "+973 3999 1122",
+      "role": "LABOUR",
+      "employee_id": "LAB-TEST-5517",
+      "status": "Active",
+      "created_at": "2026-09-30T18:20:26.116Z",
+      "updated_at": "2026-09-30T18:20:26.116Z"
     }
   ],
   "employees": [
@@ -131,6 +144,25 @@
       "remarks": "",
       "created_at": "2026-09-30T13:30:09.777Z",
       "updated_at": "2026-09-30T13:30:09.777Z"
+    },
+    {
+      "id": "emp-1790792426119-tok9",
+      "user_id": "usr-1790792426036-87wk",
+      "employee_id": "LAB-TEST-5517",
+      "full_name": "Test Project Worker",
+      "mobile": "+973 3999 1122",
+      "email": "labtest5517@firex.com",
+      "department": "Project",
+      "designation": "Piping Assistant",
+      "supervisor_id": null,
+      "supervisor_name": "Unassigned",
+      "site_id": null,
+      "site_name": "Scheduled Daily",
+      "joining_date": "2026-09-30",
+      "status": "Active",
+      "remarks": "",
+      "created_at": "2026-09-30T18:20:26.119Z",
+      "updated_at": "2026-09-30T18:20:26.119Z"
     }
   ],
   "attendance": [
@@ -171,10 +203,126 @@
       "created_at": "2026-09-30T13:30:09.881Z",
       "updated_at": "2026-09-30T13:30:09.887Z",
       "punch_out_distance_meters": 0
+    },
+    {
+      "id": "att-1790792426251-xp5c",
+      "employee_id": "LAB-TEST-5517",
+      "user_id": "usr-1790792426036-87wk",
+      "employee_name": "Test Project Worker",
+      "department": "Project",
+      "site_id": null,
+      "site_name": "BAPCO Modernization Site",
+      "supervisor_id": null,
+      "supervisor_name": "Unassigned",
+      "attendance_date": "2026-09-30",
+      "punch_in": "2026-09-30T18:20:26.251Z",
+      "punch_out": "2026-09-30T18:20:26.259Z",
+      "punch_in_display": "09:20 PM",
+      "punch_out_display": "09:20 PM",
+      "status": "Present - Late",
+      "total_minutes": 0,
+      "total_hours_formatted": "0h 00m",
+      "punch_in_latitude": 26.2415,
+      "punch_in_longitude": 50.5368,
+      "punch_in_accuracy": 12.5,
+      "punch_in_distance_meters": null,
+      "punch_out_latitude": 26.2416,
+      "punch_out_longitude": 50.5369,
+      "punch_out_accuracy": 10,
+      "punch_in_selfie": null,
+      "punch_out_selfie": null,
+      "device_info": "Chrome Mobile / Android 14",
+      "client_event_id": null,
+      "client_timestamp": "2026-09-30T18:20:26.251Z",
+      "server_timestamp": "2026-09-30T18:20:26.251Z",
+      "tamper_flag": false,
+      "clock_skew_seconds": 0,
+      "sync_status": "SYNCED",
+      "is_manual": false,
+      "created_at": "2026-09-30T18:20:26.251Z",
+      "updated_at": "2026-09-30T18:20:26.259Z",
+      "punch_out_distance_meters": null
     }
   ],
   "attendance_corrections": [],
   "attendance_audit": [
+    {
+      "id": "aud-1790792426261-x29cu",
+      "attendance_id": "att-1790792426251-xp5c",
+      "employee_id": "LAB-TEST-5517",
+      "action": "PUNCH_OUT",
+      "old_value": {
+        "punch_out": null,
+        "status": "Present - Late"
+      },
+      "new_value": {
+        "punch_out": "09:20 PM",
+        "total_hours": "0h 00m",
+        "status": "Present - Late"
+      },
+      "reason": "Labour mobile punch out",
+      "changed_by": "usr-1790792426036-87wk",
+      "changed_by_name": "Test Project Worker (LABOUR)",
+      "changed_at": "2026-09-30T18:20:26.261Z"
+    },
+    {
+      "id": "aud-1790792426253-24hye",
+      "attendance_id": "att-1790792426251-xp5c",
+      "employee_id": "LAB-TEST-5517",
+      "action": "PUNCH_IN",
+      "old_value": null,
+      "new_value": {
+        "punch_in": "09:20 PM",
+        "status": "Present - Late",
+        "date": "2026-09-30",
+        "tamper": false
+      },
+      "reason": "Labour mobile punch in",
+      "changed_by": "usr-1790792426036-87wk",
+      "changed_by_name": "Test Project Worker (LABOUR)",
+      "changed_at": "2026-09-30T18:20:26.253Z"
+    },
+    {
+      "id": "aud-1790792426141-1pvaw",
+      "attendance_id": null,
+      "employee_id": null,
+      "action": "BULK_SITE_SCHEDULED",
+      "old_value": null,
+      "new_value": null,
+      "reason": "Assigned site \"BAPCO Modernization Site\" to 1 worker(s) for 2026-09-30",
+      "changed_by": "usr-eng",
+      "changed_by_name": "HASAN ZULAIKH (ENGINEER)",
+      "changed_at": "2026-09-30T18:20:26.141Z"
+    },
+    {
+      "id": "aud-1790792426131-39p64",
+      "attendance_id": null,
+      "employee_id": "LAB-TEST-5517",
+      "action": "DAILY_SITE_SCHEDULED",
+      "old_value": null,
+      "new_value": null,
+      "reason": "Scheduled Test Project Worker to \"Al Seef Commercial Tower - Block 428\" for 2026-10-01",
+      "changed_by": "usr-sup",
+      "changed_by_name": "Sarath Kr (SUPERVISOR)",
+      "changed_at": "2026-09-30T18:20:26.131Z"
+    },
+    {
+      "id": "aud-1790792426121-09yjx",
+      "attendance_id": null,
+      "employee_id": "LAB-TEST-5517",
+      "action": "EMPLOYEE_CREATED",
+      "old_value": null,
+      "new_value": {
+        "full_name": "Test Project Worker",
+        "employee_id": "LAB-TEST-5517",
+        "department": "Project",
+        "role": "LABOUR"
+      },
+      "reason": "New employee onboarded",
+      "changed_by": "usr-eng",
+      "changed_by_name": "HASAN ZULAIKH",
+      "changed_at": "2026-09-30T18:20:26.121Z"
+    },
     {
       "id": "aud-1790775219044-sxgp7",
       "attendance_id": null,
@@ -474,6 +622,32 @@
       "size_bytes": 4096,
       "created_at": "2026-01-01T00:00:00.000Z",
       "status": "SUCCESS"
+    }
+  ],
+  "daily_schedules": [
+    {
+      "id": "sch-1790792426129-dmv9u",
+      "date": "2026-10-01",
+      "employee_id": "LAB-TEST-5517",
+      "employee_name": "Test Project Worker",
+      "department": "Project",
+      "site_name": "Al Seef Commercial Tower - Block 428",
+      "scheduled_by": "usr-sup",
+      "scheduled_by_name": "Sarath Kr (SUPERVISOR)",
+      "created_at": "2026-09-30T18:20:26.129Z",
+      "updated_at": "2026-09-30T18:20:26.129Z"
+    },
+    {
+      "id": "sch-1790792426139-bvhah",
+      "date": "2026-09-30",
+      "employee_id": "LAB-TEST-5517",
+      "employee_name": "Test Project Worker",
+      "department": "Project",
+      "site_name": "BAPCO Modernization Site",
+      "scheduled_by": "usr-eng",
+      "scheduled_by_name": "HASAN ZULAIKH (ENGINEER)",
+      "created_at": "2026-09-30T18:20:26.139Z",
+      "updated_at": "2026-09-30T18:20:26.139Z"
     }
   ]
 }

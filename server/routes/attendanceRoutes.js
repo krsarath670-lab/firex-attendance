@@ -28,6 +28,13 @@ router.get('/today-status', requireAuth, (req, res) => {
   const employee = db.findOne('employees', (e) => e.employee_id === employeeId);
   const settings = db.get('settings') || {};
 
+  // Check today's daily scheduled site
+  const dailySchedule = db.findOne(
+    'daily_schedules',
+    (s) => s.date === today && s.employee_id === employeeId
+  );
+  const scheduledSiteName = dailySchedule ? dailySchedule.site_name : (employee?.site_name || 'Assigned Daily');
+
   // Check if today is an approved leave
   const activeLeave = db.findOne(
     'leaves',
@@ -53,6 +60,8 @@ router.get('/today-status', requireAuth, (req, res) => {
     punchState,
     record,
     employee,
+    scheduled_site_name: scheduledSiteName,
+    daily_schedule: dailySchedule,
     leave: activeLeave,
     settings: {
       work_start_time: settings.work_start_time,
@@ -161,13 +170,20 @@ router.post('/punch-in', requireAuth, (req, res) => {
   const status = determineAttendanceStatus(nowIso, null, settings);
   const tamperCheck = evaluateClockTamper(client_timestamp, nowIso);
 
+  const dailySchedule = db.findOne(
+    'daily_schedules',
+    (s) => s.date === today && s.employee_id === employee.employee_id
+  );
+  const resolvedSiteName = dailySchedule ? dailySchedule.site_name : (employee.site_name || 'Assigned Daily');
+
   const newAttendance = db.insert('attendance', {
     id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     employee_id: employee.employee_id,
     user_id: req.user.id,
     employee_name: employee.full_name,
+    department: employee.department || 'Project',
     site_id: employee.site_id || null,
-    site_name: employee.site_name || 'Unassigned',
+    site_name: resolvedSiteName,
     supervisor_id: employee.supervisor_id || null,
     supervisor_name: employee.supervisor_name || 'Unassigned',
     attendance_date: today,
@@ -473,19 +489,22 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
     'leaves',
     (l) => l.status === 'Approved' && targetDate >= l.start_date && targetDate <= l.end_date
   );
+  const schedulesOnDate = db.filter('daily_schedules', (s) => s.date === targetDate);
 
   // Build composite table with all active employees
   const records = filteredEmployees.map((emp) => {
     const att = attendanceOnDate.find((a) => a.employee_id === emp.employee_id);
     const leave = leavesOnDate.find((l) => l.employee_id === emp.employee_id);
+    const sch = schedulesOnDate.find((s) => s.employee_id === emp.employee_id);
+    const scheduledSite = sch ? sch.site_name : emp.site_name;
 
     if (att) {
       return {
         ...att,
         employee_name: emp.full_name,
-        department: emp.department,
+        department: emp.department || 'Project',
         designation: emp.designation,
-        site_name: att.site_name || emp.site_name,
+        site_name: att.site_name || scheduledSite || 'Assigned Daily',
         supervisor_name: att.supervisor_name || emp.supervisor_name,
       };
     } else if (leave) {
@@ -494,10 +513,10 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
         employee_id: emp.employee_id,
         user_id: emp.user_id,
         employee_name: emp.full_name,
-        department: emp.department,
+        department: emp.department || 'Project',
         designation: emp.designation,
         site_id: emp.site_id,
-        site_name: emp.site_name,
+        site_name: scheduledSite || 'Assigned Daily',
         supervisor_id: emp.supervisor_id,
         supervisor_name: emp.supervisor_name,
         attendance_date: targetDate,
@@ -517,10 +536,10 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
         employee_id: emp.employee_id,
         user_id: emp.user_id,
         employee_name: emp.full_name,
-        department: emp.department,
+        department: emp.department || 'Project',
         designation: emp.designation,
         site_id: emp.site_id,
-        site_name: emp.site_name,
+        site_name: scheduledSite || 'Pending Assignment',
         supervisor_id: emp.supervisor_id,
         supervisor_name: emp.supervisor_name,
         attendance_date: targetDate,

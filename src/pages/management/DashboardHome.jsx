@@ -17,6 +17,7 @@ import {
   Search,
   Filter,
   RefreshCw,
+  MapPin,
 } from 'lucide-react';
 
 export function DashboardHome({ onNavigate }) {
@@ -94,6 +95,14 @@ export function DashboardHome({ onNavigate }) {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('schedule')}
+              className="px-3.5 py-2.5 bg-slate-900 hover:bg-rose-950/60 text-rose-300 hover:text-white border border-rose-500/40 rounded-2xl text-xs font-bold transition flex items-center space-x-1.5"
+            >
+              <MapPin className="w-3.5 h-3.5 text-rose-500" />
+              <span>Evening Site Scheduling</span>
             </button>
 
             <button

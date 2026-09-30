@@ -32,7 +32,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
-  const [siteFilter, setSiteFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [supervisorFilter, setSupervisorFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -47,7 +47,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
     try {
       let url = '/api/employees?';
       if (search) url += `search=${encodeURIComponent(search)}&`;
-      if (siteFilter) url += `site_id=${siteFilter}&`;
+      if (departmentFilter) url += `department=${departmentFilter}&`;
       if (supervisorFilter) url += `supervisor_id=${supervisorFilter}&`;
       if (statusFilter) url += `status=${statusFilter}&`;
 
@@ -84,7 +84,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
 
   useEffect(() => {
     fetchEmployees();
-  }, [search, siteFilter, supervisorFilter, statusFilter]);
+  }, [search, departmentFilter, supervisorFilter, statusFilter]);
 
   const handleDeleteEmployee = async (emp) => {
     const confirmMsg = `Are you sure you want to permanently delete ${emp.full_name} (${emp.employee_id})?\n\nThis will remove their account and all attendance records.`;
@@ -211,18 +211,15 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Assigned Site</label>
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Department</label>
             <select
-              value={siteFilter}
-              onChange={(e) => setSiteFilter(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-semibold"
             >
-              <option value="">All Sites</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.site_name}
-                </option>
-              ))}
+              <option value="">All Departments</option>
+              <option value="Project">Project</option>
+              <option value="Maintenance">Maintenance</option>
             </select>
           </div>
 
@@ -368,7 +365,6 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
       {showAddModal && (
         <AddEmployeeModal
           isOpen={showAddModal}
-          sites={sites}
           supervisors={supervisors}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
@@ -382,7 +378,6 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
       {editingEmployee && (
         <EditEmployeeModal
           employee={editingEmployee}
-          sites={sites}
           supervisors={supervisors}
           onClose={() => setEditingEmployee(null)}
           onSuccess={() => {
@@ -406,8 +401,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
   );
 }
 
-// Sub-component: Add Employee Modal
-function AddEmployeeModal({ isOpen, sites, supervisors, onClose, onSuccess }) {
+function AddEmployeeModal({ isOpen, supervisors, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     employee_id: '',
     full_name: '',
@@ -415,10 +409,9 @@ function AddEmployeeModal({ isOpen, sites, supervisors, onClose, onSuccess }) {
     password: '',
     mobile: '',
     email: '',
-    department: 'Field Operations',
-    designation: 'General Labour',
+    department: 'Project',
+    designation: 'Project Site Worker',
     supervisor_id: '',
-    site_id: '',
     joining_date: new Date().toISOString().substring(0, 10),
     remarks: '',
   });
@@ -448,10 +441,11 @@ function AddEmployeeModal({ isOpen, sites, supervisors, onClose, onSuccess }) {
     }
     if (isOpen) {
       loadNextId();
-      if (sites.length > 0) setFormData((f) => ({ ...f, site_id: sites[0].id }));
-      if (supervisors.length > 0) setFormData((f) => ({ ...f, supervisor_id: supervisors[0].id }));
+      if (supervisors && supervisors.length > 0) {
+        setFormData((f) => ({ ...f, supervisor_id: supervisors[0].id }));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, supervisors]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -640,74 +634,24 @@ function AddEmployeeModal({ isOpen, sites, supervisors, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-300">Assigned Site</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData((f) => ({
-                      ...f,
-                      isCustomSite: !f.isCustomSite,
-                      custom_site_name: '',
-                      site_id: f.isCustomSite ? (sites[0]?.id || '') : '',
-                    }));
-                  }}
-                  className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold"
-                >
-                  {formData.isCustomSite ? '← Pick from list' : '+ Type New Site'}
-                </button>
-              </div>
-
-              {formData.isCustomSite ? (
-                <input
-                  type="text"
-                  placeholder="Type new project site name..."
-                  value={formData.custom_site_name || ''}
-                  onChange={(e) => setFormData({ ...formData, custom_site_name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-                />
-              ) : (
-                <select
-                  value={formData.site_id}
-                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-                >
-                  <option value="">-- Select Work Site --</option>
-                  {sites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.site_name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Assigned Supervisor</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Department <span className="text-rose-400">*</span>
+              </label>
               <select
-                value={formData.supervisor_id}
-                onChange={(e) => setFormData({ ...formData, supervisor_id: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-              >
-                <option value="">-- Select Supervisor --</option>
-                {supervisors.map((sup) => (
-                  <option key={sup.id} value={sup.id}>
-                    {sup.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Department</label>
-              <input
-                type="text"
                 value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-              />
+                onChange={(e) => {
+                  const dept = e.target.value;
+                  setFormData({
+                    ...formData,
+                    department: dept,
+                    designation: dept === 'Maintenance' ? 'Maintenance Technician' : 'Project Site Worker',
+                  });
+                }}
+                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500 font-bold"
+              >
+                <option value="Project">Project</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
             </div>
 
             <div>
@@ -718,6 +662,31 @@ function AddEmployeeModal({ isOpen, sites, supervisors, onClose, onSuccess }) {
                 onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Assigned Supervisor</label>
+              <select
+                value={formData.supervisor_id}
+                onChange={(e) => setFormData({ ...formData, supervisor_id: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
+              >
+                <option value="">-- Select Supervisor --</option>
+                {supervisors && supervisors.map((sup) => (
+                  <option key={sup.id} value={sup.id}>
+                    {sup.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Daily Site Assignment</label>
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs text-slate-400">
+                <span>📍 Scheduled daily in evening by Engineer/Supervisor</span>
+              </div>
             </div>
           </div>
 
@@ -868,74 +837,17 @@ function EditEmployeeModal({ employee, sites, supervisors, onClose, onSuccess })
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-300">Assigned Site</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData((f) => ({
-                      ...f,
-                      isCustomSite: !f.isCustomSite,
-                      custom_site_name: '',
-                      site_id: f.isCustomSite ? (sites[0]?.id || '') : '',
-                    }));
-                  }}
-                  className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold"
-                >
-                  {formData.isCustomSite ? '← Pick from list' : '+ Type New Site'}
-                </button>
-              </div>
-
-              {formData.isCustomSite ? (
-                <input
-                  type="text"
-                  placeholder="Type new project site name..."
-                  value={formData.custom_site_name || ''}
-                  onChange={(e) => setFormData({ ...formData, custom_site_name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-                />
-              ) : (
-                <select
-                  value={formData.site_id}
-                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-                >
-                  <option value="">Unassigned</option>
-                  {sites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.site_name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Assigned Supervisor</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Department <span className="text-rose-400">*</span>
+              </label>
               <select
-                value={formData.supervisor_id}
-                onChange={(e) => setFormData({ ...formData, supervisor_id: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-              >
-                <option value="">Unassigned</option>
-                {supervisors.map((sup) => (
-                  <option key={sup.id} value={sup.id}>
-                    {sup.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Department</label>
-              <input
-                type="text"
-                value={formData.department}
+                value={formData.department || 'Project'}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
-              />
+                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500 font-bold"
+              >
+                <option value="Project">Project</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
             </div>
 
             <div>
@@ -946,6 +858,31 @@ function EditEmployeeModal({ employee, sites, supervisors, onClose, onSuccess })
                 onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Assigned Supervisor</label>
+              <select
+                value={formData.supervisor_id}
+                onChange={(e) => setFormData({ ...formData, supervisor_id: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
+              >
+                <option value="">Unassigned</option>
+                {supervisors && supervisors.map((sup) => (
+                  <option key={sup.id} value={sup.id}>
+                    {sup.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Daily Site Assignment</label>
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs text-slate-400">
+                <span>📍 Scheduled daily in evening by Engineer/Supervisor</span>
+              </div>
             </div>
           </div>
 

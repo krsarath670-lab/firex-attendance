@@ -152,40 +152,7 @@ router.post('/', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res
     return res.status(400).json({ error: `Username "${generatedUsername}" or email is already registered.` });
   }
 
-  // Lookup site and supervisor names or auto-create custom site
-  let resolvedSiteId = site_id || null;
-  let site_name = 'Unassigned';
-
-  const typedSiteName = (req.body.custom_site_name || req.body.site_name || '').trim();
-
-  if (typedSiteName) {
-    const existingSite = db.findOne('sites', (s) => s.site_name.toLowerCase() === typedSiteName.toLowerCase());
-    if (existingSite) {
-      resolvedSiteId = existingSite.id;
-      site_name = existingSite.site_name;
-    } else {
-      const newSite = db.insert('sites', {
-        id: `site-${Date.now()}`,
-        site_code: `SITE-${Date.now().toString().slice(-4)}`,
-        site_name: typedSiteName,
-        address: 'Bahrain',
-        area: 'Bahrain',
-        latitude: 26.2415,
-        longitude: 50.5368,
-        allowed_radius: 150,
-        status: 'Active',
-        remarks: 'Auto-created during employee onboarding',
-      });
-      resolvedSiteId = newSite.id;
-      site_name = newSite.site_name;
-    }
-  } else if (site_id) {
-    const site = db.findById('sites', site_id);
-    if (site) {
-      resolvedSiteId = site.id;
-      site_name = site.site_name;
-    }
-  }
+  const validDepartment = department === 'Maintenance' ? 'Maintenance' : 'Project';
 
   let supervisor_name = 'Unassigned';
   if (supervisor_id) {
@@ -213,12 +180,12 @@ router.post('/', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res
     full_name: full_name.trim(),
     mobile: mobile || '',
     email: email || `${generatedUsername}@firex.com`,
-    department: department || 'Field Operations',
-    designation: designation || 'General Labour',
+    department: validDepartment,
+    designation: designation || (validDepartment === 'Maintenance' ? 'Maintenance Technician' : 'Project Site Worker'),
     supervisor_id: supervisor_id || null,
     supervisor_name: supervisor_name,
-    site_id: resolvedSiteId,
-    site_name: site_name,
+    site_id: null,
+    site_name: 'Scheduled Daily',
     joining_date: joining_date || getBahrainDateString(),
     status: 'Active',
     remarks: remarks || '',
@@ -227,7 +194,7 @@ router.post('/', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res
   db.audit({
     employee_id: newEmployee.employee_id,
     action: 'EMPLOYEE_CREATED',
-    new_value: { full_name, employee_id, site_name, role },
+    new_value: { full_name, employee_id, department: validDepartment, role },
     reason: 'New employee onboarded',
     changed_by: req.user.id,
     changed_by_name: req.user.name,
@@ -304,11 +271,16 @@ router.put('/:id', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, r
   const { password, username } = req.body;
   const oldValues = { ...employee };
 
+  let normalizedDepartment = employee.department;
+  if (department !== undefined) {
+    normalizedDepartment = department === 'Maintenance' ? 'Maintenance' : 'Project';
+  }
+
   const updatedEmployee = db.update('employees', employee.id, {
     full_name: full_name !== undefined ? full_name.trim() : employee.full_name,
     mobile: mobile !== undefined ? mobile.trim() : employee.mobile,
     email: email !== undefined ? email.trim() : employee.email,
-    department: department !== undefined ? department : employee.department,
+    department: normalizedDepartment,
     designation: designation !== undefined ? designation : employee.designation,
     supervisor_id: supervisor_id !== undefined ? supervisor_id : employee.supervisor_id,
     supervisor_name,

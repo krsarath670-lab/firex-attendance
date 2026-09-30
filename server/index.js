@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settingsRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +32,7 @@ app.use(authMiddleware);
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/schedule', scheduleRoutes);
 app.use('/api/sites', siteRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/reports', reportRoutes);

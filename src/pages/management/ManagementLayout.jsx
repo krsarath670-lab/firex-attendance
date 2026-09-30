@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { DashboardHome } from './DashboardHome';
 import { DailyAttendancePage } from './DailyAttendancePage';
 import { MonthlyAttendancePage } from './MonthlyAttendancePage';
+import { SiteSchedulePage } from './SiteSchedulePage';
 import { EmployeeManagementPage } from './EmployeeManagementPage';
 import { LeaveManagementPage } from './LeaveManagementPage';
 import { CorrectionReviewPage } from './CorrectionReviewPage';
@@ -28,6 +29,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  MapPin,
 } from 'lucide-react';
 
 export function ManagementLayout() {
@@ -38,6 +40,7 @@ export function ManagementLayout() {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'schedule', label: 'Daily Site Scheduling', icon: MapPin },
     { id: 'daily', label: 'Daily Attendance', icon: Clock },
     { id: 'monthly', label: 'Monthly Attendance', icon: FileSpreadsheet },
     { id: 'employees', label: 'Labour Employees', icon: Users },
@@ -188,6 +191,7 @@ export function ManagementLayout() {
       {/* Main Content Area */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20 lg:pb-8">
         {activeTab === 'dashboard' && <DashboardHome onNavigate={handleNavigate} />}
+        {activeTab === 'schedule' && <SiteSchedulePage />}
         {activeTab === 'daily' && <DailyAttendancePage />}
         {activeTab === 'monthly' && <MonthlyAttendancePage />}
         {activeTab === 'employees' && <EmployeeManagementPage initialOpenAdd={openAddEmployee} />}

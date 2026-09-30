@@ -26,6 +26,7 @@ export function DailyAttendancePage() {
   const [sites, setSites] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
 
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [siteFilter, setSiteFilter] = useState('');
   const [supervisorFilter, setSupervisorFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -40,6 +41,7 @@ export function DailyAttendancePage() {
     setLoading(true);
     try {
       let url = `/api/attendance/daily?date=${date}`;
+      if (departmentFilter) url += `&department=${departmentFilter}`;
       if (siteFilter) url += `&site_id=${siteFilter}`;
       if (supervisorFilter) url += `&supervisor_id=${supervisorFilter}`;
       if (statusFilter) url += `&status=${statusFilter}`;
@@ -80,13 +82,13 @@ export function DailyAttendancePage() {
 
   useEffect(() => {
     fetchDailyData();
-  }, [date, siteFilter, supervisorFilter, statusFilter, search]);
+  }, [date, departmentFilter, siteFilter, supervisorFilter, statusFilter, search]);
 
   const handleExportExcel = () => {
     const exportRows = records.map((r) => ({
       'Employee ID': r.employee_id,
       'Full Name': r.employee_name,
-      Department: r.department || 'Field Operations',
+      Department: r.department || 'Project',
       Site: r.site_name,
       Supervisor: r.supervisor_name,
       Date: r.attendance_date,
@@ -105,7 +107,7 @@ export function DailyAttendancePage() {
     const exportRows = records.map((r) => ({
       'Employee ID': r.employee_id,
       'Full Name': r.employee_name,
-      Department: r.department || 'Field Operations',
+      Department: r.department || 'Project',
       Site: r.site_name,
       Supervisor: r.supervisor_name,
       Date: r.attendance_date,
@@ -121,12 +123,12 @@ export function DailyAttendancePage() {
   };
 
   const handleExportPDF = () => {
-    const columns = ['Employee ID', 'Name', 'Site', 'Supervisor', 'Punch In', 'Punch Out', 'Hours', 'Status'];
+    const columns = ['Employee ID', 'Name', 'Dept', 'Site', 'Punch In', 'Punch Out', 'Hours', 'Status'];
     const rows = records.map((r) => [
       r.employee_id,
       r.employee_name,
+      r.department || 'Project',
       r.site_name || 'Unassigned',
-      r.supervisor_name || 'Unassigned',
       r.punch_in_display || 'Absent',
       r.punch_out_display || '--:--',
       r.total_hours_formatted || '0h 00m',
@@ -147,7 +149,7 @@ export function DailyAttendancePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white">Daily Attendance</h1>
-          <p className="text-xs text-slate-400">View, audit, and manually adjust employee shift records</p>
+          <p className="text-xs text-slate-400">View, audit, GPS locations, and adjust employee shift records</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -206,18 +208,15 @@ export function DailyAttendancePage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Site</label>
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Department</label>
             <select
-              value={siteFilter}
-              onChange={(e) => setSiteFilter(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-semibold"
             >
-              <option value="">All Sites</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.site_name}
-                </option>
-              ))}
+              <option value="">All Departments</option>
+              <option value="Project">Project</option>
+              <option value="Maintenance">Maintenance</option>
             </select>
           </div>
 
@@ -310,17 +309,56 @@ export function DailyAttendancePage() {
                 records.map((r) => (
                   <tr key={r.id || r.employee_id} className="hover:bg-slate-800/40 transition">
                     <td className="py-3 px-3 font-semibold text-white">
-                      <div>{r.employee_name}</div>
+                      <div className="flex items-center space-x-1.5">
+                        <span>{r.employee_name}</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                            r.department === 'Maintenance'
+                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                          }`}
+                        >
+                          {r.department || 'Project'}
+                        </span>
+                      </div>
                       <div className="text-[10px] text-slate-500 font-normal">{r.designation}</div>
                     </td>
                     <td className="py-3 px-3 font-mono font-bold text-slate-300">{r.employee_id}</td>
                     <td className="py-3 px-3 text-slate-300">{r.site_name || 'Unassigned'}</td>
                     <td className="py-3 px-3 text-slate-400">{r.supervisor_name || 'Unassigned'}</td>
-                    <td className="py-3 px-3 font-mono font-medium text-slate-200">
-                      {r.punch_in_display || '--:--'}
+                    <td className="py-3 px-3">
+                      <div className="font-mono font-medium text-slate-200">
+                        {r.punch_in_display || '--:--'}
+                      </div>
+                      {r.punch_in_latitude && r.punch_in_longitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${r.punch_in_latitude},${r.punch_in_longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Punch In GPS: ${r.punch_in_latitude}, ${r.punch_in_longitude}`}
+                          className="inline-flex items-center space-x-1 text-[10px] text-rose-400 hover:text-rose-300 underline font-mono mt-0.5"
+                        >
+                          <MapPin className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                          <span>GPS Map ↗</span>
+                        </a>
+                      )}
                     </td>
-                    <td className="py-3 px-3 font-mono font-medium text-slate-200">
-                      {r.punch_out_display || '--:--'}
+                    <td className="py-3 px-3">
+                      <div className="font-mono font-medium text-slate-200">
+                        {r.punch_out_display || '--:--'}
+                      </div>
+                      {r.punch_out_latitude && r.punch_out_longitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${r.punch_out_latitude},${r.punch_out_longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Punch Out GPS: ${r.punch_out_latitude}, ${r.punch_out_longitude}`}
+                          className="inline-flex items-center space-x-1 text-[10px] text-emerald-400 hover:text-emerald-300 underline font-mono mt-0.5"
+                        >
+                          <MapPin className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                          <span>GPS Map ↗</span>
+                        </a>
+                      )}
                     </td>
                     <td className="py-3 px-3 font-mono font-bold text-emerald-400">
                       {r.total_hours_formatted || '0h 00m'}
