@@ -1,4 +1,4 @@
-const CACHE_NAME = 'firex-attendance-v1';
+const CACHE_NAME = 'firex-attendance-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -27,7 +27,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Do not cache API requests - API requests should always go to network or handled by client offline queue
+  // Do not cache API requests
   if (event.request.url.includes('/api/')) {
     return;
   }
@@ -35,16 +35,20 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cache but update in background
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {});
+        // Return cache but update in background safely with clone
+        fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+          })
+          .catch(() => {});
         return cachedResponse;
       }
       return fetch(event.request).catch(() => {
-        // If offline and requesting navigation, return index.html
         if (event.request.mode === 'navigate') {
           return caches.match('/index.html');
         }
