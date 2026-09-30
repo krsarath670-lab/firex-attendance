@@ -129,6 +129,22 @@ router.post('/admin-reset-password', requireAuth, requireRole(['ENGINEER', 'SUPE
   res.json({ message: `Password reset successfully for ${targetUser.name}.` });
 });
 
+// POST /api/auth/reset-default-passwords (Emergency reset for default engineer and supervisor logins to admin123)
+router.post('/reset-default-passwords', (req, res) => {
+  const users = db.get('users');
+  const defaultPassHash = hashPassword('admin123');
+  let resetCount = 0;
+
+  for (const user of users) {
+    if (['engineer', 'supervisor', 'admin.hr'].includes(user.username.toLowerCase()) || ['ENGINEER', 'SUPERVISOR', 'ADMIN'].includes(user.role)) {
+      db.update('users', user.id, { password_hash: defaultPassHash, status: 'Active' });
+      resetCount++;
+    }
+  }
+
+  res.json({ message: `Success! ${resetCount} management account(s) reset to password: admin123` });
+});
+
 // GET /api/auth/engineers-supervisors (List all Engineer & Supervisor users)
 router.get('/engineers-supervisors', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res) => {
   const users = db.get('users');

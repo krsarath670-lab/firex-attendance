@@ -28,10 +28,29 @@ export function LoginPage() {
     }
   };
 
+  const [resetSuccess, setResetSuccess] = useState('');
+
+  const handleResetDefaults = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await fetch('/api/auth/reset-default-passwords', { method: 'POST' });
+      const data = await res.json();
+      setResetSuccess(data.message || 'Passswords reset to: admin123');
+      setIdentifier('engineer');
+      setPassword('admin123');
+    } catch (err) {
+      setError('Could not reset passwords: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFillDemo = (userVal, passVal) => {
     setIdentifier(userVal);
     setPassword(passVal);
     setError('');
+    setResetSuccess('');
   };
 
   return (
@@ -122,11 +141,28 @@ export function LoginPage() {
             </button>
           </form>
 
+          {resetSuccess && (
+            <div className="mb-6 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-start space-x-2 text-emerald-300 text-xs">
+              <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{resetSuccess}</span>
+            </div>
+          )}
+
           {/* Quick Test Accounts Section */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center mb-3">
-              ⚡ Quick 1-Click Test Accounts
-            </p>
+          <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                ⚡ Quick 1-Click Login
+              </p>
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                className="text-[10px] text-rose-400 hover:text-rose-300 underline font-semibold transition"
+              >
+                Reset to admin123
+              </button>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -137,7 +173,7 @@ export function LoginPage() {
                   <span className="text-xs font-bold text-purple-300">ENGINEER</span>
                   <ShieldCheck className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition" />
                 </div>
-                <p className="text-[10px] text-slate-400">Full System Access</p>
+                <p className="text-[10px] text-slate-400">engineer / admin123</p>
               </button>
 
               <button
@@ -149,31 +185,7 @@ export function LoginPage() {
                   <span className="text-xs font-bold text-amber-300">SUPERVISOR</span>
                   <UserCheck className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition" />
                 </div>
-                <p className="text-[10px] text-slate-400">Management Access</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('labour1', 'labour123')}
-                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-emerald-500/30 rounded-xl text-left transition group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-300">LABOUR 1</span>
-                  <HardHat className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
-                </div>
-                <p className="text-[10px] text-slate-400">Mohammed (LAB-0001)</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('labour2', 'labour123')}
-                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-emerald-500/30 rounded-xl text-left transition group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-300">LABOUR 2</span>
-                  <HardHat className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
-                </div>
-                <p className="text-[10px] text-slate-400">Rajesh (LAB-0002)</p>
+                <p className="text-[10px] text-slate-400">supervisor / admin123</p>
               </button>
             </div>
           </div>
