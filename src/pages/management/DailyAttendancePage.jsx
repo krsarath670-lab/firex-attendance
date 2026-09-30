@@ -17,12 +17,16 @@ import {
   ShieldAlert,
   WifiOff,
   X,
+  Zap,
+  CalendarDays,
+  Sun,
 } from 'lucide-react';
 
 export function DailyAttendancePage() {
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [records, setRecords] = useState([]);
   const [metrics, setMetrics] = useState(null);
+  const [schedule, setSchedule] = useState(null);
   const [sites, setSites] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
 
@@ -54,6 +58,7 @@ export function DailyAttendancePage() {
         const data = await res.json();
         setRecords(data.records || []);
         setMetrics(data.summary || null);
+        setSchedule(data.schedule || null);
       }
     } catch (err) {
       console.error('Error loading daily attendance:', err);
@@ -94,7 +99,9 @@ export function DailyAttendancePage() {
       Date: r.attendance_date,
       'Punch In': r.punch_in_display || 'Absent',
       'Punch Out': r.punch_out_display || '--:--',
-      'Working Hours': r.total_hours_formatted || '0h 00m',
+      'Total Hours': r.total_hours_formatted || '0h 00m',
+      'Regular Hours': r.regular_hours_formatted || '0h 00m',
+      'Overtime (OT)': r.ot_hours_formatted || '0h 00m',
       Status: r.status,
       'Sync Status': r.sync_status || 'SYNCED',
       'Tamper Flag': r.tamper_flag ? 'YES (Clock Skew)' : 'NO',
@@ -113,7 +120,9 @@ export function DailyAttendancePage() {
       Date: r.attendance_date,
       'Punch In': r.punch_in_display || 'Absent',
       'Punch Out': r.punch_out_display || '--:--',
-      'Working Hours': r.total_hours_formatted || '0h 00m',
+      'Total Hours': r.total_hours_formatted || '0h 00m',
+      'Regular Hours': r.regular_hours_formatted || '0h 00m',
+      'Overtime (OT)': r.ot_hours_formatted || '0h 00m',
       Status: r.status,
       'Sync Status': r.sync_status || 'SYNCED',
       'Tamper Flag': r.tamper_flag ? 'YES' : 'NO',
@@ -123,7 +132,7 @@ export function DailyAttendancePage() {
   };
 
   const handleExportPDF = () => {
-    const columns = ['Employee ID', 'Name', 'Dept', 'Site', 'Punch In', 'Punch Out', 'Hours', 'Status'];
+    const columns = ['Employee ID', 'Name', 'Dept', 'Site', 'Punch In', 'Punch Out', 'Total', 'OT', 'Status'];
     const rows = records.map((r) => [
       r.employee_id,
       r.employee_name,
@@ -132,11 +141,12 @@ export function DailyAttendancePage() {
       r.punch_in_display || 'Absent',
       r.punch_out_display || '--:--',
       r.total_hours_formatted || '0h 00m',
+      r.ot_hours_formatted || '0h 00m',
       r.status || 'Absent',
     ]);
     exportToPDF({
       title: `Daily Attendance Report — ${date}`,
-      subtitle: `Company: FIREX • Total Workforce: ${records.length} Employees`,
+      subtitle: `Company: FIREX • Total Workforce: ${records.length} Employees • Total OT: ${metrics?.total_ot_hours_formatted || '0h 00m'}`,
       columns,
       rows,
       fileName: `FIREX-Daily-Attendance-${date}`,
@@ -148,8 +158,8 @@ export function DailyAttendancePage() {
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">Daily Attendance</h1>
-          <p className="text-xs text-slate-400">View, audit, GPS locations, and adjust employee shift records</p>
+          <h1 className="text-2xl font-black text-white">Daily Attendance & Overtime</h1>
+          <p className="text-xs text-slate-400">View, audit, GPS locations, regular shift hours, and Overtime (OT)</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -188,6 +198,78 @@ export function DailyAttendancePage() {
           </button>
         </div>
       </div>
+
+      {/* Shift Schedule Banner for Selected Date */}
+      {schedule && (
+        <div
+          className={`p-4 rounded-3xl border flex items-center justify-between text-xs ${
+            schedule.is_public_holiday
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              : schedule.is_friday
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : schedule.is_saturday
+              ? 'bg-sky-500/10 border-sky-500/30 text-sky-300'
+              : 'bg-slate-900 border-slate-800 text-slate-300'
+          }`}
+        >
+          <div className="flex items-center space-x-3">
+            {schedule.is_public_holiday || schedule.is_friday ? (
+              <CalendarDays className="w-5 h-5 flex-shrink-0" />
+            ) : (
+              <Clock className="w-5 h-5 flex-shrink-0" />
+            )}
+            <div>
+              <span className="font-bold block">
+                {schedule.day_name}, {date}: {schedule.shift_name}
+              </span>
+              <span className="text-[11px] opacity-80">
+                {schedule.is_holiday
+                  ? 'Official Holiday • All worked hours calculated as 100% Holiday Overtime'
+                  : `Shift Window: ${schedule.shift_start} to ${schedule.shift_end} (${schedule.expected_hours}h) • Before/after is recorded as OT`}
+              </span>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center space-x-2 text-right">
+            <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-slate-950/60 border border-current">
+              {schedule.is_holiday ? 'Holiday Rules' : 'Standard Shift'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Metrics Summary Cards */}
+      {metrics && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <div className="text-[10px] uppercase font-bold text-slate-400">Total Workforce</div>
+            <div className="text-xl font-black text-white mt-1">{metrics.total_labour}</div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <div className="text-[10px] uppercase font-bold text-emerald-400">Present Today</div>
+            <div className="text-xl font-black text-emerald-400 mt-1">{metrics.present}</div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <div className="text-[10px] uppercase font-bold text-amber-400">Late Arrivals</div>
+            <div className="text-xl font-black text-amber-400 mt-1">{metrics.late}</div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <div className="text-[10px] uppercase font-bold text-rose-400">Absent</div>
+            <div className="text-xl font-black text-rose-400 mt-1">{metrics.absent}</div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+            <div className="text-[10px] uppercase font-bold text-cyan-400">Active Working</div>
+            <div className="text-xl font-black text-cyan-400 mt-1">{metrics.currently_working}</div>
+          </div>
+          <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-3.5 shadow-lg bg-gradient-to-br from-amber-500/10 to-transparent">
+            <div className="text-[10px] uppercase font-bold text-amber-400 flex items-center space-x-1">
+              <Zap className="w-3 h-3" />
+              <span>Total Overtime</span>
+            </div>
+            <div className="text-xl font-black text-amber-300 mt-1 font-mono">{metrics.total_ot_hours_formatted || '0h 00m'}</div>
+          </div>
+        </div>
+      )}
 
       {/* Date & Filter Bar */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
@@ -246,6 +328,7 @@ export function DailyAttendancePage() {
               <option value="">All Statuses</option>
               <option value="Present">Present</option>
               <option value="Present - Late">Present - Late</option>
+              <option value="Holiday">Holiday / Weekly Off</option>
               <option value="Absent">Absent</option>
               <option value="Leave">On Leave</option>
               <option value="Corrected">Corrected</option>
@@ -271,21 +354,22 @@ export function DailyAttendancePage() {
       {/* Attendance Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Daily Records ({records.length} Employees)</h3>
+          <h3 className="text-sm font-bold text-white">Daily Workforce Records ({records.length} Employees)</h3>
           <span className="text-xs text-slate-400">Date: {date} (Bahrain Time)</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+              <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
                 <th className="pb-3 px-3">Employee</th>
                 <th className="pb-3 px-3">ID</th>
-                <th className="pb-3 px-3">Site</th>
-                <th className="pb-3 px-3">Supervisor</th>
+                <th className="pb-3 px-3">Daily Site</th>
                 <th className="pb-3 px-3">Punch In</th>
                 <th className="pb-3 px-3">Punch Out</th>
-                <th className="pb-3 px-3">Hours</th>
+                <th className="pb-3 px-3">Regular</th>
+                <th className="pb-3 px-3 text-amber-400">OT</th>
+                <th className="pb-3 px-3">Total</th>
                 <th className="pb-3 px-3">Verification</th>
                 <th className="pb-3 px-3">Status</th>
                 <th className="pb-3 px-3 text-right">Actions</th>
@@ -294,14 +378,14 @@ export function DailyAttendancePage() {
             <tbody className="divide-y divide-slate-800/60">
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="py-8 text-center text-slate-500">
+                  <td colSpan="11" className="py-8 text-center text-slate-500">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto text-rose-500 mb-2" />
                     Loading daily attendance...
                   </td>
                 </tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="py-8 text-center text-slate-500">
+                  <td colSpan="11" className="py-8 text-center text-slate-500">
                     No attendance records found for this date.
                   </td>
                 </tr>
@@ -324,11 +408,10 @@ export function DailyAttendancePage() {
                       <div className="text-[10px] text-slate-500 font-normal">{r.designation}</div>
                     </td>
                     <td className="py-3 px-3 font-mono font-bold text-slate-300">{r.employee_id}</td>
-                    <td className="py-3 px-3 text-slate-300">{r.site_name || 'Unassigned'}</td>
-                    <td className="py-3 px-3 text-slate-400">{r.supervisor_name || 'Unassigned'}</td>
+                    <td className="py-3 px-3 text-slate-300">{r.site_name || 'Assigned Daily'}</td>
                     <td className="py-3 px-3">
                       <div className="font-mono font-medium text-slate-200">
-                        {r.punch_in_display || '--:--'}
+                        {r.punch_in_display || '—'}
                       </div>
                       {r.punch_in_latitude && r.punch_in_longitude && (
                         <a
@@ -345,7 +428,7 @@ export function DailyAttendancePage() {
                     </td>
                     <td className="py-3 px-3">
                       <div className="font-mono font-medium text-slate-200">
-                        {r.punch_out_display || '--:--'}
+                        {r.punch_out_display || '—'}
                       </div>
                       {r.punch_out_latitude && r.punch_out_longitude && (
                         <a
@@ -359,6 +442,12 @@ export function DailyAttendancePage() {
                           <span>GPS Map ↗</span>
                         </a>
                       )}
+                    </td>
+                    <td className="py-3 px-3 font-mono text-slate-300">
+                      {r.regular_hours_formatted || '0h 00m'}
+                    </td>
+                    <td className="py-3 px-3 font-mono font-bold text-amber-400">
+                      {r.ot_hours_formatted || '0h 00m'}
                     </td>
                     <td className="py-3 px-3 font-mono font-bold text-emerald-400">
                       {r.total_hours_formatted || '0h 00m'}

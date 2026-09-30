@@ -11,6 +11,7 @@ import { SiteManagementPage } from './SiteManagementPage';
 import { ReportsPage } from './ReportsPage';
 import { BackupManagementPage } from './BackupManagementPage';
 import { SettingsPage } from './SettingsPage';
+import { HolidayManagementPage } from './HolidayManagementPage';
 import { AuditLogPage } from './AuditLogPage';
 import { UserManagementPage } from './UserManagementPage';
 import {
@@ -19,6 +20,7 @@ import {
   FileSpreadsheet,
   Users,
   Calendar,
+  CalendarDays,
   FileEdit,
   Building,
   FileText,
@@ -44,6 +46,7 @@ export function ManagementLayout() {
     { id: 'daily', label: 'Daily Attendance', icon: Clock },
     { id: 'monthly', label: 'Monthly Attendance', icon: FileSpreadsheet },
     { id: 'employees', label: 'Labour Employees', icon: Users },
+    { id: 'holidays', label: 'Public Holidays', icon: CalendarDays },
     { id: 'leaves', label: 'Leave Requests', icon: Calendar },
     { id: 'staff', label: 'Engineers & Supervisors', icon: UserCheck },
     { id: 'corrections', label: 'Correction Requests', icon: FileEdit },
@@ -196,6 +199,7 @@ export function ManagementLayout() {
         {activeTab === 'monthly' && <MonthlyAttendancePage />}
         {activeTab === 'employees' && <EmployeeManagementPage initialOpenAdd={openAddEmployee} />}
         {activeTab === 'leaves' && <LeaveManagementPage />}
+        {activeTab === 'holidays' && <HolidayManagementPage />}
         {activeTab === 'staff' && <UserManagementPage />}
         {activeTab === 'corrections' && <CorrectionReviewPage />}
         {activeTab === 'sites' && <SiteManagementPage />}

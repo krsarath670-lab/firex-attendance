@@ -7,6 +7,8 @@ import {
   determineAttendanceStatus,
   calculateWorkingTime,
   calculateDistanceMeters,
+  getScheduleForDate,
+  minutesToHoursFormatted,
 } from '../attendanceEngine.js';
 
 const router = express.Router();
@@ -27,6 +29,7 @@ router.get('/today-status', requireAuth, (req, res) => {
 
   const employee = db.findOne('employees', (e) => e.employee_id === employeeId);
   const settings = db.get('settings') || {};
+  const todaySchedule = getScheduleForDate(today, settings);
 
   // Check today's daily scheduled site
   const dailySchedule = db.findOne(
@@ -62,11 +65,16 @@ router.get('/today-status', requireAuth, (req, res) => {
     employee,
     scheduled_site_name: scheduledSiteName,
     daily_schedule: dailySchedule,
+    schedule: todaySchedule,
     leave: activeLeave,
     settings: {
-      work_start_time: settings.work_start_time,
-      work_end_time: settings.work_end_time,
-      grace_period_minutes: settings.grace_period_minutes,
+      work_start_time: settings.work_start_time || '07:30',
+      work_end_time: settings.work_end_time || '16:30',
+      saturday_start_time: settings.saturday_start_time || '07:30',
+      saturday_end_time: settings.saturday_end_time || '13:00',
+      friday_holiday: settings.friday_holiday !== undefined ? settings.friday_holiday : true,
+      overtime_enabled: settings.overtime_enabled !== undefined ? settings.overtime_enabled : true,
+      grace_period_minutes: settings.grace_period_minutes ?? 15,
       gps_enabled: settings.gps_enabled,
       gps_enforcement_enabled: settings.gps_enforcement_enabled,
       photo_verification_enabled: settings.photo_verification_enabled,
@@ -167,7 +175,7 @@ router.post('/punch-in', requireAuth, (req, res) => {
 
   const nowIso = new Date().toISOString();
   const punchInDisplay = formatBahrainTime(nowIso);
-  const status = determineAttendanceStatus(nowIso, null, settings);
+  const status = determineAttendanceStatus(nowIso, null, settings, today);
   const tamperCheck = evaluateClockTamper(client_timestamp, nowIso);
 
   const dailySchedule = db.findOne(
@@ -194,6 +202,10 @@ router.post('/punch-in', requireAuth, (req, res) => {
     status: status,
     total_minutes: 0,
     total_hours_formatted: '0h 00m',
+    regular_minutes: 0,
+    regular_hours_formatted: '0h 00m',
+    ot_minutes: 0,
+    ot_hours_formatted: '0h 00m',
     punch_in_latitude: latitude || null,
     punch_in_longitude: longitude || null,
     punch_in_accuracy: accuracy || null,
@@ -274,8 +286,8 @@ router.post('/punch-out', requireAuth, (req, res) => {
   const punchOutDisplay = formatBahrainTime(nowIso);
   const settings = db.get('settings') || {};
 
-  const { total_minutes, total_hours_formatted } = calculateWorkingTime(existing.punch_in, nowIso);
-  const finalStatus = determineAttendanceStatus(existing.punch_in, nowIso, settings);
+  const workingTime = calculateWorkingTime(existing.punch_in, nowIso, today, settings);
+  const finalStatus = determineAttendanceStatus(existing.punch_in, nowIso, settings, today);
   const tamperCheck = evaluateClockTamper(client_timestamp, nowIso);
 
   let siteDistance = null;
@@ -290,8 +302,16 @@ router.post('/punch-out', requireAuth, (req, res) => {
     punch_out: nowIso,
     punch_out_display: punchOutDisplay,
     status: finalStatus,
-    total_minutes,
-    total_hours_formatted,
+    total_minutes: workingTime.total_minutes,
+    total_hours_formatted: workingTime.total_hours_formatted,
+    regular_minutes: workingTime.regular_minutes,
+    regular_hours_formatted: workingTime.regular_hours_formatted,
+    ot_minutes: workingTime.ot_minutes,
+    ot_hours_formatted: workingTime.ot_hours_formatted,
+    early_ot_minutes: workingTime.early_ot_minutes,
+    late_ot_minutes: workingTime.late_ot_minutes,
+    holiday_ot_minutes: workingTime.holiday_ot_minutes,
+    is_holiday_work: workingTime.is_holiday_work,
     punch_out_latitude: latitude || null,
     punch_out_longitude: longitude || null,
     punch_out_accuracy: accuracy || null,
@@ -306,7 +326,12 @@ router.post('/punch-out', requireAuth, (req, res) => {
     employee_id: employeeId,
     action: 'PUNCH_OUT',
     old_value: { punch_out: null, status: existing.status },
-    new_value: { punch_out: punchOutDisplay, total_hours: total_hours_formatted, status: finalStatus },
+    new_value: {
+      punch_out: punchOutDisplay,
+      total_hours: workingTime.total_hours_formatted,
+      ot_hours: workingTime.ot_hours_formatted,
+      status: finalStatus,
+    },
     reason: 'Labour mobile punch out',
     changed_by: req.user.id,
     changed_by_name: `${req.user.name} (${req.user.role})`,
@@ -315,7 +340,9 @@ router.post('/punch-out', requireAuth, (req, res) => {
   res.json({
     message: 'Punched out successfully!',
     punch_out_time: punchOutDisplay,
-    total_hours: total_hours_formatted,
+    total_hours: workingTime.total_hours_formatted,
+    regular_hours: workingTime.regular_hours_formatted,
+    ot_hours: workingTime.ot_hours_formatted,
     status: finalStatus,
     attendance: updatedAttendance,
   });
@@ -460,6 +487,8 @@ router.get('/my', requireAuth, (req, res) => {
 router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
   const { date, site_id, supervisor_id, department, status, search } = req.query;
   const targetDate = date || getBahrainDateString();
+  const settings = db.get('settings') || {};
+  const schedule = getScheduleForDate(targetDate, settings);
 
   const allEmployees = db.filter('employees', (e) => e.status === 'Active');
   let filteredEmployees = [...allEmployees];
@@ -506,6 +535,10 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
         designation: emp.designation,
         site_name: att.site_name || scheduledSite || 'Assigned Daily',
         supervisor_name: att.supervisor_name || emp.supervisor_name,
+        regular_hours_formatted: att.regular_hours_formatted || att.total_hours_formatted || '0h 00m',
+        ot_hours_formatted: att.ot_hours_formatted || '0h 00m',
+        ot_minutes: att.ot_minutes || 0,
+        regular_minutes: att.regular_minutes || 0,
       };
     } else if (leave) {
       return {
@@ -527,8 +560,64 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
         status: `Leave (${leave.leave_type})`,
         total_minutes: 0,
         total_hours_formatted: '0h 00m',
+        regular_minutes: 0,
+        regular_hours_formatted: '0h 00m',
+        ot_minutes: 0,
+        ot_hours_formatted: '0h 00m',
         is_leave: true,
         leave_reason: leave.reason,
+      };
+    } else if (schedule.is_public_holiday) {
+      return {
+        id: `holiday-${emp.employee_id}-${targetDate}`,
+        employee_id: emp.employee_id,
+        user_id: emp.user_id,
+        employee_name: emp.full_name,
+        department: emp.department || 'Project',
+        designation: emp.designation,
+        site_id: emp.site_id,
+        site_name: scheduledSite || 'Official Holiday',
+        supervisor_id: emp.supervisor_id,
+        supervisor_name: emp.supervisor_name,
+        attendance_date: targetDate,
+        punch_in: null,
+        punch_out: null,
+        punch_in_display: '—',
+        punch_out_display: '—',
+        status: `Holiday: ${schedule.holiday_name || 'Public Holiday'}`,
+        total_minutes: 0,
+        total_hours_formatted: '0h 00m',
+        regular_minutes: 0,
+        regular_hours_formatted: '0h 00m',
+        ot_minutes: 0,
+        ot_hours_formatted: '0h 00m',
+        is_holiday: true,
+      };
+    } else if (schedule.is_friday) {
+      return {
+        id: `friday-${emp.employee_id}-${targetDate}`,
+        employee_id: emp.employee_id,
+        user_id: emp.user_id,
+        employee_name: emp.full_name,
+        department: emp.department || 'Project',
+        designation: emp.designation,
+        site_id: emp.site_id,
+        site_name: scheduledSite || 'Weekly Off',
+        supervisor_id: emp.supervisor_id,
+        supervisor_name: emp.supervisor_name,
+        attendance_date: targetDate,
+        punch_in: null,
+        punch_out: null,
+        punch_in_display: '—',
+        punch_out_display: '—',
+        status: 'Friday (Weekly Off)',
+        total_minutes: 0,
+        total_hours_formatted: '0h 00m',
+        regular_minutes: 0,
+        regular_hours_formatted: '0h 00m',
+        ot_minutes: 0,
+        ot_hours_formatted: '0h 00m',
+        is_weekly_off: true,
       };
     } else {
       return {
@@ -550,6 +639,10 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
         status: 'Absent',
         total_minutes: 0,
         total_hours_formatted: '0h 00m',
+        regular_minutes: 0,
+        regular_hours_formatted: '0h 00m',
+        ot_minutes: 0,
+        ot_hours_formatted: '0h 00m',
         is_absent: true,
       };
     }
@@ -562,15 +655,20 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
 
   // Calculate summary cards
   const totalLabour = allEmployees.length;
-  const presentCount = records.filter((r) => r.status === 'Present' || r.status.startsWith('Present -') || r.status === 'Corrected').length;
+  const presentCount = records.filter((r) => r.punch_in && (r.status === 'Present' || r.status.startsWith('Present -') || r.status === 'Corrected' || r.status.includes('Holiday Work'))).length;
   const lateCount = records.filter((r) => r.status.includes('Late')).length;
   const absentCount = records.filter((r) => r.status === 'Absent').length;
   const currentlyWorking = records.filter((r) => r.punch_in && !r.punch_out).length;
   const checkedOut = records.filter((r) => r.punch_in && r.punch_out).length;
   const leaveCount = records.filter((r) => r.is_leave || r.status.startsWith('Leave')).length;
+  const holidayCount = records.filter((r) => r.is_holiday || r.is_weekly_off).length;
+
+  const totalOtMinutes = records.reduce((sum, r) => sum + (r.ot_minutes || 0), 0);
+  const totalRegularMinutes = records.reduce((sum, r) => sum + (r.regular_minutes || 0), 0);
 
   res.json({
     date: targetDate,
+    schedule: schedule,
     summary: {
       total_labour: totalLabour,
       present: presentCount,
@@ -579,6 +677,10 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
       currently_working: currentlyWorking,
       checked_out: checkedOut,
       leave_count: leaveCount,
+      holiday_count: holidayCount,
+      total_ot_minutes: totalOtMinutes,
+      total_ot_hours_formatted: minutesToHoursFormatted(totalOtMinutes),
+      total_regular_hours_formatted: minutesToHoursFormatted(totalRegularMinutes),
       correction_requests: corrections.length,
     },
     records: finalRecords,
@@ -624,14 +726,20 @@ router.get('/monthly', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
       (l) => l.employee_id === emp.employee_id && (l.start_date.startsWith(monthPrefix) || l.end_date.startsWith(monthPrefix))
     );
 
-    const presentDays = empAtt.filter((a) => a.punch_in && (a.status === 'Present' || a.status.startsWith('Present -') || a.status === 'Corrected')).length;
+    const presentDays = empAtt.filter((a) => a.punch_in && (a.status === 'Present' || a.status.startsWith('Present -') || a.status === 'Corrected' || a.status.includes('Holiday Work'))).length;
     const lateDays = empAtt.filter((a) => a.status.includes('Late')).length;
     const leaveDays = empLeaves.reduce((sum, l) => sum + (l.total_days || 0), 0);
 
     const totalMinutes = empAtt.reduce((sum, a) => sum + (a.total_minutes || 0), 0);
-    const totalHoursFormatted = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
+    const regularMinutes = empAtt.reduce((sum, a) => sum + (a.regular_minutes || (a.total_minutes || 0)), 0);
+    const otMinutes = empAtt.reduce((sum, a) => sum + (a.ot_minutes || 0), 0);
+
+    const totalHoursFormatted = minutesToHoursFormatted(totalMinutes);
+    const regularHoursFormatted = minutesToHoursFormatted(regularMinutes);
+    const otHoursFormatted = minutesToHoursFormatted(otMinutes);
+
     const avgMinutesPerPresentDay = presentDays > 0 ? Math.round(totalMinutes / presentDays) : 0;
-    const avgHoursFormatted = `${Math.floor(avgMinutesPerPresentDay / 60)}h ${avgMinutesPerPresentDay % 60}m`;
+    const avgHoursFormatted = minutesToHoursFormatted(avgMinutesPerPresentDay);
 
     const assumedWorkingDays = 26;
     const calculatedAbsent = Math.max(0, assumedWorkingDays - presentDays - leaveDays);
@@ -650,11 +758,18 @@ router.get('/monthly', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
       leave_days: leaveDays,
       total_hours_formatted: totalHoursFormatted,
       total_minutes: totalMinutes,
+      regular_minutes: regularMinutes,
+      regular_hours_formatted: regularHoursFormatted,
+      ot_minutes: otMinutes,
+      ot_hours_formatted: otHoursFormatted,
       avg_hours_formatted: avgHoursFormatted,
       correction_count: empCorr.length,
       records: empAtt,
     };
   });
+
+  const grandOtMinutes = matrix.reduce((sum, m) => sum + (m.ot_minutes || 0), 0);
+  const grandTotalMinutes = matrix.reduce((sum, m) => sum + (m.total_minutes || 0), 0);
 
   res.json({
     month: targetMonth,
@@ -663,6 +778,8 @@ router.get('/monthly', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
     summary: {
       total_employees: employees.length,
       total_records: allMonthlyAttendance.length,
+      grand_total_hours: minutesToHoursFormatted(grandTotalMinutes),
+      grand_ot_hours: minutesToHoursFormatted(grandOtMinutes),
     },
     data: matrix,
   });

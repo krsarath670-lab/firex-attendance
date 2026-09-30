@@ -432,10 +432,28 @@ export function LabourHome() {
                 {bahrainTime || '--:--:-- --'}
               </div>
 
-              <div className="text-[11px] text-slate-400 flex items-center justify-center space-x-3">
-                <span>Shift: <strong className="text-slate-200">07:00 AM - 05:00 PM</strong></span>
-                <span>•</span>
-                <span>Grace: <strong className="text-emerald-400">15 min</strong></span>
+              <div className="text-[11px] text-slate-300 flex flex-col sm:flex-row items-center justify-center gap-1 sm:space-x-3">
+                {todayData?.schedule?.is_public_holiday ? (
+                  <span className="text-amber-400 font-bold">
+                    Public Holiday: {todayData.schedule.holiday_name} (100% OT)
+                  </span>
+                ) : todayData?.schedule?.is_friday ? (
+                  <span className="text-emerald-400 font-bold">
+                    Friday: Official Weekly Off (100% OT)
+                  </span>
+                ) : todayData?.schedule?.is_saturday ? (
+                  <span>
+                    Shift: <strong className="text-white">07:30 AM - 01:00 PM</strong> (Half Day)
+                  </span>
+                ) : (
+                  <span>
+                    Shift: <strong className="text-white">07:30 AM - 04:30 PM</strong> (9h)
+                  </span>
+                )}
+                <span className="hidden sm:inline">•</span>
+                <span className="text-slate-400">
+                  Grace: <strong className="text-emerald-400">{todayData?.settings?.grace_period_minutes || 15} min</strong>
+                </span>
               </div>
             </div>
 
@@ -477,7 +495,7 @@ export function LabourHome() {
 
             {/* Check-Out Completed Summary (If Punched Out) */}
             {isPunchedOut && (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center space-y-2">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center space-y-3">
                 <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
@@ -492,10 +510,20 @@ export function LabourHome() {
                     <span className="font-bold text-white">{todayData?.record?.punch_out_display}</span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Total Working Time:{' '}
-                  <strong className="text-emerald-400">{todayData?.record?.total_hours_formatted}</strong>
-                </p>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs py-2 bg-slate-950/60 rounded-2xl border border-slate-800/50">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase">Regular</span>
+                    <span className="font-bold text-slate-200">{todayData?.record?.regular_hours_formatted || '0h 00m'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-amber-400 block uppercase font-bold">Overtime (OT)</span>
+                    <span className="font-bold text-amber-400">{todayData?.record?.ot_hours_formatted || '0h 00m'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-emerald-400 block uppercase font-bold">Total Hours</span>
+                    <span className="font-bold text-emerald-400">{todayData?.record?.total_hours_formatted || '0h 00m'}</span>
+                  </div>
+                </div>
               </div>
             )}
 
