@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Flame, Lock, User, ShieldCheck, AlertCircle, ArrowRight, UserCheck, HardHat } from 'lucide-react';
+import {
+  Flame,
+  Lock,
+  User,
+  ShieldCheck,
+  AlertCircle,
+  ArrowRight,
+  UserCheck,
+  HardHat,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [identifier, setIdentifier] = useState('');
+  const [identifier, setIdentifier] = useState(() => localStorage.getItem('firex_last_username') || '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!identifier.trim() || !password.trim()) {
-      setError('Please provide username/email and password.');
+    const cleanId = identifier.trim();
+    const cleanPass = password.trim();
+
+    if (!cleanId || !cleanPass) {
+      setError('Please provide username/email/employee ID and password.');
       return;
     }
 
@@ -20,15 +36,14 @@ export function LoginPage() {
     setError('');
 
     try {
-      await login(identifier, password);
+      await login(cleanId, cleanPass);
+      localStorage.setItem('firex_last_username', cleanId);
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Login failed. Please check your username and password.');
     } finally {
       setLoading(false);
     }
   };
-
-  const [resetSuccess, setResetSuccess] = useState('');
 
   const handleResetDefaults = async () => {
     try {
@@ -36,7 +51,7 @@ export function LoginPage() {
       setError('');
       const res = await fetch('/api/auth/reset-default-passwords', { method: 'POST' });
       const data = await res.json();
-      setResetSuccess(data.message || 'Passswords reset to: admin123');
+      setResetSuccess(data.message || 'Passwords reset to: admin123');
       setIdentifier('engineer');
       setPassword('admin123');
     } catch (err) {
@@ -68,7 +83,7 @@ export function LoginPage() {
           <h1 className="text-3xl font-extrabold text-white tracking-wider">
             FIREX <span className="text-rose-500">ATTENDANCE</span>
           </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">Labour Attendance Management System</p>
+          <p className="mt-1 text-sm text-slate-400 font-medium">Labour Attendance & Shift Management</p>
           <div className="mt-2 inline-flex items-center space-x-1.5 bg-slate-900 border border-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
             <span>Bahrain Operations (UTC+3)</span>
@@ -84,10 +99,17 @@ export function LoginPage() {
             </div>
           )}
 
+          {resetSuccess && (
+            <div className="mb-6 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-start space-x-2 text-emerald-300 text-xs">
+              <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{resetSuccess}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                Username / Email / Employee ID
+                Username / Employee ID / Phone / Email
               </label>
               <div className="relative rounded-2xl shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -97,7 +119,7 @@ export function LoginPage() {
                   type="text"
                   required
                   autoComplete="username"
-                  placeholder="e.g. LAB-0001 or engineer"
+                  placeholder="e.g. LAB-0001, engineer, or mobile"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition"
@@ -114,14 +136,22 @@ export function LoginPage() {
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   autoComplete="current-password"
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition"
+                  className="block w-full pl-10 pr-11 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -141,13 +171,6 @@ export function LoginPage() {
             </button>
           </form>
 
-          {resetSuccess && (
-            <div className="mb-6 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-start space-x-2 text-emerald-300 text-xs">
-              <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{resetSuccess}</span>
-            </div>
-          )}
-
           {/* Quick Test Accounts Section */}
           <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
@@ -163,17 +186,17 @@ export function LoginPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => handleFillDemo('engineer', 'admin123')}
                 className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-purple-500/30 rounded-xl text-left transition group"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-purple-300">ENGINEER</span>
+                  <span className="text-[11px] font-bold text-purple-300">ENGINEER</span>
                   <ShieldCheck className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition" />
                 </div>
-                <p className="text-[10px] text-slate-400">engineer / admin123</p>
+                <p className="text-[9px] text-slate-400 font-mono">admin123</p>
               </button>
 
               <button
@@ -182,10 +205,22 @@ export function LoginPage() {
                 className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-amber-500/30 rounded-xl text-left transition group"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-300">SUPERVISOR</span>
+                  <span className="text-[11px] font-bold text-amber-300">SUPERVISOR</span>
                   <UserCheck className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition" />
                 </div>
-                <p className="text-[10px] text-slate-400">supervisor / admin123</p>
+                <p className="text-[9px] text-slate-400 font-mono">admin123</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleFillDemo('LAB-0001', 'labour123')}
+                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-cyan-500/30 rounded-xl text-left transition group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-cyan-300">LABOUR</span>
+                  <HardHat className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition" />
+                </div>
+                <p className="text-[9px] text-slate-400 font-mono">labour123</p>
               </button>
             </div>
           </div>

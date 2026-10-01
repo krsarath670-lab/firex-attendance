@@ -229,6 +229,19 @@
       "status": "Active",
       "created_at": "2026-09-30T18:37:05.560Z",
       "updated_at": "2026-09-30T18:37:05.560Z"
+    },
+    {
+      "id": "usr-test-1790845417691",
+      "name": "Khalid Al-Bahraini",
+      "email": "khalid@firex.com",
+      "username": "khalid",
+      "password_hash": "$2a$10$1pE9dqYOMCEFBPGPD7xHEe0LBvmbvFCHjQViWKlXPzmI6gaveB9vi",
+      "phone": "+973 3999 7788",
+      "role": "LABOUR",
+      "employee_id": "LAB-9988",
+      "status": "Active",
+      "created_at": "2026-10-01T09:03:37.860Z",
+      "updated_at": "2026-10-01T09:03:37.860Z"
     }
   ],
   "employees": [
@@ -307,6 +320,19 @@
       "remarks": "",
       "created_at": "2026-09-30T18:37:05.561Z",
       "updated_at": "2026-09-30T18:37:05.561Z"
+    },
+    {
+      "id": "emp-test-1790845417865",
+      "user_id": "usr-test-1790845417691",
+      "employee_id": "LAB-9988",
+      "full_name": "Khalid Al-Bahraini",
+      "mobile": "+973 3999 7788",
+      "email": "khalid@firex.com",
+      "department": "Project",
+      "designation": "Safety Officer",
+      "status": "Active",
+      "created_at": "2026-10-01T09:03:37.865Z",
+      "updated_at": "2026-10-01T09:03:37.865Z"
     }
   ],
   "attendance": [
@@ -1072,6 +1098,136 @@
       "scheduled_by_name": "HASAN ZULAIKH (ENGINEER)",
       "created_at": "2026-09-30T18:37:05.586Z",
       "updated_at": "2026-09-30T18:37:05.586Z"
+    }
+  ],
+  "holidays": [
+    {
+      "id": "hol-1",
+      "name": "New Year's Day",
+      "date": "2026-01-01",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Public Holiday"
+    },
+    {
+      "id": "hol-2",
+      "name": "Eid Al Fitr (Day 1)",
+      "date": "2026-03-20",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-3",
+      "name": "Eid Al Fitr (Day 2)",
+      "date": "2026-03-21",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-4",
+      "name": "Eid Al Fitr (Day 3)",
+      "date": "2026-03-22",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-5",
+      "name": "Labour Day",
+      "date": "2026-05-01",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Public Holiday"
+    },
+    {
+      "id": "hol-6",
+      "name": "Arafat Day",
+      "date": "2026-05-26",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-7",
+      "name": "Eid Al Adha (Day 1)",
+      "date": "2026-05-27",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-8",
+      "name": "Eid Al Adha (Day 2)",
+      "date": "2026-05-28",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-9",
+      "name": "Eid Al Adha (Day 3)",
+      "date": "2026-05-29",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-10",
+      "name": "Islamic New Year (Hijri 1448)",
+      "date": "2026-06-16",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-11",
+      "name": "Ashura (Day 1)",
+      "date": "2026-06-25",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Holiday"
+    },
+    {
+      "id": "hol-12",
+      "name": "Ashura (Day 2)",
+      "date": "2026-06-26",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Holiday"
+    },
+    {
+      "id": "hol-13",
+      "name": "Prophet's Birthday (Mawlid)",
+      "date": "2026-08-25",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Holiday"
+    },
+    {
+      "id": "hol-14",
+      "name": "Bahrain National Day",
+      "date": "2026-12-16",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "55th National Day"
+    },
+    {
+      "id": "hol-15",
+      "name": "Bahrain National Day (Day 2)",
+      "date": "2026-12-17",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Accession Day"
+    },
+    {
+      "id": "hol-16",
+      "name": "New Year's Day 2027",
+      "date": "2027-01-01",
+      "year": 2027,
+      "is_official": true,
+      "remarks": "Official Public Holiday"
     }
   ]
 }

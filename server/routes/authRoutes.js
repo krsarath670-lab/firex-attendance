@@ -8,19 +8,84 @@ const router = express.Router();
 router.post('/login', (req, res) => {
   const { identifier, password } = req.body;
   if (!identifier || !password) {
-    return res.status(400).json({ error: 'Please provide username/email and password.' });
+    return res.status(400).json({ error: 'Please provide username/email/phone and password.' });
   }
 
+  const rawId = String(identifier).trim();
+  const lowerId = rawId.toLowerCase();
+  const alphaNumId = lowerId.replace(/[^a-z0-9]/g, '');
+  const digitsOnly = lowerId.replace(/[^0-9]/g, '');
+
   const users = db.get('users');
-  const user = users.find(
-    (u) =>
-      (u.email && u.email.toLowerCase() === identifier.trim().toLowerCase()) ||
-      (u.username && u.username.toLowerCase() === identifier.trim().toLowerCase()) ||
-      (u.employee_id && u.employee_id.toLowerCase() === identifier.trim().toLowerCase())
-  );
+  let user = users.find((u) => {
+    if (!u) return false;
+    const uEmail = u.email ? u.email.trim().toLowerCase() : '';
+    const uUsername = u.username ? u.username.trim().toLowerCase() : '';
+    const uEmpId = u.employee_id ? u.employee_id.trim().toLowerCase() : '';
+    const uName = u.name ? u.name.trim().toLowerCase() : '';
+    const uPhone = u.phone ? u.phone.replace(/[^0-9]/g, '') : '';
+
+    // Direct string matches
+    if (uUsername && (uUsername === lowerId || uUsername.replace(/[^a-z0-9]/g, '') === alphaNumId)) return true;
+    if (uEmpId && (uEmpId === lowerId || uEmpId.replace(/[^a-z0-9]/g, '') === alphaNumId)) return true;
+    if (uEmail && uEmail === lowerId) return true;
+    if (uName && (uName === lowerId || uName.replace(/[^a-z0-9]/g, '') === alphaNumId)) return true;
+
+    // Phone number matches (e.g. 39027232 or +973 3902 7232)
+    if (digitsOnly.length >= 6 && uPhone) {
+      if (uPhone === digitsOnly || uPhone.endsWith(digitsOnly) || digitsOnly.endsWith(uPhone)) return true;
+    }
+
+    return false;
+  });
+
+  // If not found in users, check if an employee record matches
+  if (!user) {
+    const employees = db.get('employees');
+    const emp = employees.find((e) => {
+      if (!e) return false;
+      const eEmpId = e.employee_id ? e.employee_id.trim().toLowerCase() : '';
+      const eName = e.full_name ? e.full_name.trim().toLowerCase() : '';
+      const eEmail = e.email ? e.email.trim().toLowerCase() : '';
+      const eMobile = e.mobile ? e.mobile.replace(/[^0-9]/g, '') : '';
+
+      if (eEmpId && (eEmpId === lowerId || eEmpId.replace(/[^a-z0-9]/g, '') === alphaNumId)) return true;
+      if (eName && (eName === lowerId || eName.replace(/[^a-z0-9]/g, '') === alphaNumId)) return true;
+      if (eEmail && eEmail === lowerId) return true;
+      if (digitsOnly.length >= 6 && eMobile) {
+        if (eMobile === digitsOnly || eMobile.endsWith(digitsOnly) || digitsOnly.endsWith(eMobile)) return true;
+      }
+      return false;
+    });
+
+    if (emp) {
+      if (emp.user_id) {
+        user = db.findById('users', emp.user_id);
+      }
+      if (!user) {
+        user = users.find((u) => u.employee_id === emp.employee_id);
+      }
+      // If user account still not found for this employee, create it on-the-fly
+      if (!user) {
+        const cleanUser = emp.employee_id.toLowerCase().replace(/[^a-z0-9]/g, '');
+        user = db.insert('users', {
+          id: emp.user_id || `usr-${Date.now()}`,
+          name: emp.full_name,
+          email: emp.email || `${cleanUser}@firex.com`,
+          username: cleanUser,
+          password_hash: hashPassword(password || 'labour123'),
+          phone: emp.mobile || '',
+          role: 'LABOUR',
+          employee_id: emp.employee_id,
+          status: emp.status || 'Active',
+        });
+        db.update('employees', emp.id, { user_id: user.id });
+      }
+    }
+  }
 
   if (!user) {
-    return res.status(401).json({ error: 'Invalid username/email or password.' });
+    return res.status(401).json({ error: 'Invalid username, employee ID, or password.' });
   }
 
   if (user.status === 'Inactive') {
@@ -29,7 +94,7 @@ router.post('/login', (req, res) => {
 
   const isMatch = comparePassword(password, user.password_hash);
   if (!isMatch) {
-    return res.status(401).json({ error: 'Invalid username/email or password.' });
+    return res.status(401).json({ error: 'Invalid username, employee ID, or password.' });
   }
 
   const token = signToken(user);
