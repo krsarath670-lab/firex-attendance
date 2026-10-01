@@ -65,22 +65,6 @@ router.post('/login', (req, res) => {
       if (!user) {
         user = users.find((u) => u.employee_id === emp.employee_id);
       }
-      // If user account still not found for this employee, create it on-the-fly
-      if (!user) {
-        const cleanUser = emp.employee_id.toLowerCase().replace(/[^a-z0-9]/g, '');
-        user = db.insert('users', {
-          id: emp.user_id || `usr-${Date.now()}`,
-          name: emp.full_name,
-          email: emp.email || `${cleanUser}@firex.com`,
-          username: cleanUser,
-          password_hash: hashPassword(password || 'labour123'),
-          phone: emp.mobile || '',
-          role: 'LABOUR',
-          employee_id: emp.employee_id,
-          status: emp.status || 'Active',
-        });
-        db.update('employees', emp.id, { user_id: user.id });
-      }
     }
   }
 
@@ -172,14 +156,31 @@ router.post('/change-password', requireAuth, (req, res) => {
 
 // POST /api/auth/admin-reset-password (Engineer/Supervisor resets employee password)
 router.post('/admin-reset-password', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res) => {
-  const { userId, newPassword } = req.body;
-  if (!userId || !newPassword) {
-    return res.status(400).json({ error: 'User ID and new password are required.' });
+  const { userId, employeeId, newPassword } = req.body;
+  if ((!userId && !employeeId) || !newPassword || !newPassword.trim()) {
+    return res.status(400).json({ error: 'User/Employee ID and new password are required.' });
   }
 
-  const targetUser = db.findById('users', userId);
+  if (newPassword.trim().length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+
+  let targetUser = null;
+  if (userId) {
+    targetUser = db.findById('users', userId);
+  }
+  if (!targetUser && employeeId) {
+    targetUser = db.findOne('users', (u) => u.employee_id === employeeId || u.id === employeeId);
+  }
+  if (!targetUser && employeeId) {
+    const emp = db.findOne('employees', (e) => e.employee_id === employeeId || e.id === employeeId);
+    if (emp && emp.user_id) {
+      targetUser = db.findById('users', emp.user_id);
+    }
+  }
+
   if (!targetUser) {
-    return res.status(404).json({ error: 'User not found' });
+    return res.status(404).json({ error: 'User account not found.' });
   }
 
   // Supervisors cannot reset Engineer's password
@@ -188,26 +189,19 @@ router.post('/admin-reset-password', requireAuth, requireRole(['ENGINEER', 'SUPE
   }
 
   db.update('users', targetUser.id, {
-    password_hash: hashPassword(newPassword),
+    password_hash: hashPassword(newPassword.trim()),
   });
 
-  res.json({ message: `Password reset successfully for ${targetUser.name}.` });
-});
+  db.audit({
+    employee_id: targetUser.employee_id || null,
+    action: 'ADMIN_PASSWORD_RESET',
+    new_value: { username: targetUser.username, name: targetUser.name },
+    reason: `Password reset by ${req.user.name} (${req.user.role})`,
+    changed_by: req.user.id,
+    changed_by_name: req.user.name,
+  });
 
-// POST /api/auth/reset-default-passwords (Emergency reset for default engineer and supervisor logins to admin123)
-router.post('/reset-default-passwords', (req, res) => {
-  const users = db.get('users');
-  const defaultPassHash = hashPassword('admin123');
-  let resetCount = 0;
-
-  for (const user of users) {
-    if (['engineer', 'supervisor', 'admin.hr'].includes(user.username.toLowerCase()) || ['ENGINEER', 'SUPERVISOR', 'ADMIN'].includes(user.role)) {
-      db.update('users', user.id, { password_hash: defaultPassHash, status: 'Active' });
-      resetCount++;
-    }
-  }
-
-  res.json({ message: `Success! ${resetCount} management account(s) reset to password: admin123` });
+  res.json({ message: `Password reset successfully for ${targetUser.name || targetUser.username}.` });
 });
 
 // GET /api/auth/engineers-supervisors (List all Engineer & Supervisor users)

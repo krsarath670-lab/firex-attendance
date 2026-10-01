@@ -24,6 +24,8 @@ export function UserManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
@@ -142,8 +144,15 @@ export function UserManagementPage() {
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end space-x-1.5">
                         <button
+                          onClick={() => setResetPasswordUser(u)}
+                          title="Reset Password"
+                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition"
+                        >
+                          <Key className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => setEditingUser(u)}
-                          title="Edit User & Password"
+                          title="Edit User"
                           className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -186,6 +195,18 @@ export function UserManagementPage() {
           onClose={() => setEditingUser(null)}
           onSuccess={() => {
             setEditingUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
+
+      {/* Reset Password Modal */}
+      {resetPasswordUser && (
+        <AdminResetPasswordModal
+          targetUser={resetPasswordUser}
+          onClose={() => setResetPasswordUser(null)}
+          onSuccess={() => {
+            setResetPasswordUser(null);
             fetchUsers();
           }}
         />
@@ -512,6 +533,112 @@ function EditUserModal({ targetUser, onClose, onSuccess }) {
             >
               <Save className="w-4 h-4" />
               <span>{loading ? 'Saving...' : 'Update Account'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AdminResetPasswordModal({ targetUser, onClose, onSuccess }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleReset = async (e) => {
+    e.preventDefault();
+    if (!newPassword.trim() || newPassword.trim().length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/admin-reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('firex_token')}`,
+        },
+        body: JSON.stringify({
+          userId: targetUser.id,
+          employeeId: targetUser.employee_id,
+          newPassword: newPassword.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+
+      alert(data.message || 'Password reset successfully!');
+      onSuccess();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white bg-slate-800 rounded-full transition"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center space-x-3 mb-2">
+          <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30">
+            <Key className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">Reset Password</h3>
+            <p className="text-xs text-slate-400">User: {targetUser.name} ({targetUser.username})</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="my-3 p-3 bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs rounded-xl flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleReset} className="space-y-4 mt-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              New Password (min 6 characters) <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Type new secure password..."
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-xs text-emerald-400 focus:outline-none focus:border-rose-500 font-mono font-bold"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-2xl text-xs font-bold shadow-lg shadow-rose-600/30 flex items-center space-x-1.5"
+            >
+              <Key className="w-4 h-4" />
+              <span>{loading ? 'Resetting...' : 'Save New Password'}</span>
             </button>
           </div>
         </form>

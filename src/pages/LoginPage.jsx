@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   Flame,
   Lock,
   User,
-  ShieldCheck,
   AlertCircle,
   ArrowRight,
-  UserCheck,
-  HardHat,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -20,7 +17,6 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [resetSuccess, setResetSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,33 +35,10 @@ export function LoginPage() {
       await login(cleanId, cleanPass);
       localStorage.setItem('firex_last_username', cleanId);
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your username and password.');
+      setError(err.message || 'Invalid username, employee ID, or password.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleResetDefaults = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const res = await fetch('/api/auth/reset-default-passwords', { method: 'POST' });
-      const data = await res.json();
-      setResetSuccess(data.message || 'Passwords reset to: admin123');
-      setIdentifier('engineer');
-      setPassword('admin123');
-    } catch (err) {
-      setError('Could not reset passwords: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFillDemo = (userVal, passVal) => {
-    setIdentifier(userVal);
-    setPassword(passVal);
-    setError('');
-    setResetSuccess('');
   };
 
   return (
@@ -83,7 +56,7 @@ export function LoginPage() {
           <h1 className="text-3xl font-extrabold text-white tracking-wider">
             FIREX <span className="text-rose-500">ATTENDANCE</span>
           </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">Labour Attendance & Shift Management</p>
+          <p className="mt-1 text-sm text-slate-400 font-medium">Workforce Attendance & Shift Management</p>
           <div className="mt-2 inline-flex items-center space-x-1.5 bg-slate-900 border border-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
             <span>Bahrain Operations (UTC+3)</span>
@@ -96,13 +69,6 @@ export function LoginPage() {
             <div className="mb-6 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-start space-x-2 text-rose-300 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
-            </div>
-          )}
-
-          {resetSuccess && (
-            <div className="mb-6 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-start space-x-2 text-emerald-300 text-xs">
-              <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{resetSuccess}</span>
             </div>
           )}
 
@@ -119,7 +85,7 @@ export function LoginPage() {
                   type="text"
                   required
                   autoComplete="username"
-                  placeholder="e.g. LAB-0001, engineer, or mobile"
+                  placeholder="e.g. engineer001, supervisor001, LAB-0001"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition"
@@ -139,7 +105,7 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   required
                   autoComplete="current-password"
-                  placeholder="Enter your password"
+                  placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-11 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition"
@@ -170,60 +136,6 @@ export function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Test Accounts Section */}
-          <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                ⚡ Quick 1-Click Login
-              </p>
-              <button
-                type="button"
-                onClick={handleResetDefaults}
-                className="text-[10px] text-rose-400 hover:text-rose-300 underline font-semibold transition"
-              >
-                Reset to admin123
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('engineer', 'admin123')}
-                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-purple-500/30 rounded-xl text-left transition group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-purple-300">ENGINEER</span>
-                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition" />
-                </div>
-                <p className="text-[9px] text-slate-400 font-mono">admin123</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('supervisor', 'admin123')}
-                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-amber-500/30 rounded-xl text-left transition group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-amber-300">SUPERVISOR</span>
-                  <UserCheck className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition" />
-                </div>
-                <p className="text-[9px] text-slate-400 font-mono">admin123</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('LAB-0001', 'labour123')}
-                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-cyan-500/30 rounded-xl text-left transition group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-cyan-300">LABOUR</span>
-                  <HardHat className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition" />
-                </div>
-                <p className="text-[9px] text-slate-400 font-mono">labour123</p>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
