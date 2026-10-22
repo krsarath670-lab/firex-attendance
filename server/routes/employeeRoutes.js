@@ -368,9 +368,12 @@ router.post('/delete-all', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']),
   // Clear employees
   db.set('employees', []);
 
-  // Clear attendance records & corrections
+  // Clear attendance records, corrections, daily schedules, leaves & audit
   db.set('attendance', []);
   db.set('attendance_corrections', []);
+  db.set('daily_schedules', []);
+  db.set('leaves', []);
+  db.set('attendance_audit', []);
 
   db.audit({
     employee_id: null,
