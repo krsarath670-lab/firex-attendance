@@ -1,7 +1,7 @@
 import express from 'express';
 import db from '../db.js';
 import { requireAuth, requireRole } from '../auth.js';
-import { getBahrainDateString } from '../attendanceEngine.js';
+import { getBahrainDateString, getScheduleForDate } from '../attendanceEngine.js';
 
 const router = express.Router();
 const MANAGEMENT_ROLES = ['SUPER_ADMIN', 'ENGINEER', 'SUPERVISOR', 'ADMIN'];
@@ -14,6 +14,57 @@ function getBahrainTomorrowDateString() {
   bahrainTime.setDate(bahrainTime.getDate() + 1);
   return bahrainTime.toISOString().substring(0, 10);
 }
+
+// GET /api/schedule/my-schedule
+// Labour / Employee personal schedule view for tomorrow & upcoming days
+router.get('/my-schedule', requireAuth, (req, res) => {
+  const employeeId = req.user.employee_id;
+  if (!employeeId) {
+    return res.status(400).json({ error: 'No employee ID associated with this account.' });
+  }
+
+  const today = getBahrainDateString();
+  const settings = db.get('settings') || {};
+  const allSchedules = db.get('daily_schedules') || [];
+  const allLeaves = db.get('leaves') || [];
+
+  const days = [];
+  const [y, m, d] = today.split('-').map(Number);
+  for (let i = 0; i < 7; i++) {
+    const dateObj = new Date(Date.UTC(y, m - 1, d + i, 12, 0, 0));
+    const dateStr = dateObj.toISOString().substring(0, 10);
+    const daySchedule = getScheduleForDate(dateStr, settings);
+    const dailySite = allSchedules.find((s) => s.date === dateStr && s.employee_id === employeeId);
+    const activeLeave = allLeaves.find(
+      (l) =>
+        l.employee_id === employeeId &&
+        l.status === 'Approved' &&
+        dateStr >= l.start_date &&
+        dateStr <= l.end_date
+    );
+
+    days.push({
+      date: dateStr,
+      is_today: i === 0,
+      is_tomorrow: i === 1,
+      day_name: dateObj.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
+      formatted_date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+      site_name: dailySite ? dailySite.site_name : null,
+      scheduled_by: dailySite ? dailySite.scheduled_by_name : null,
+      scheduled_at: dailySite ? dailySite.updated_at : null,
+      is_scheduled: Boolean(dailySite && dailySite.site_name),
+      rules: daySchedule,
+      leave: activeLeave,
+    });
+  }
+
+  res.json({
+    employee_id: employeeId,
+    days,
+    today: days[0],
+    tomorrow: days[1],
+  });
+});
 
 // GET /api/schedule
 // Returns workers and their scheduled site for a specific date (defaults to tomorrow)

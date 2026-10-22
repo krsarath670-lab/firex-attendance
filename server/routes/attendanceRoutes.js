@@ -48,6 +48,37 @@ router.get('/today-status', requireAuth, (req, res) => {
       today <= l.end_date
   );
 
+  // Check tomorrow's scheduled site & rules (Next Day Schedule for Labour)
+  const tomorrow = (() => {
+    const [y, m, d] = today.split('-').map(Number);
+    const tomDate = new Date(Date.UTC(y, m - 1, d + 1, 12, 0, 0));
+    return tomDate.toISOString().substring(0, 10);
+  })();
+
+  const tomorrowSchedule = getScheduleForDate(tomorrow, settings);
+  const tomorrowDailySchedule = db.findOne(
+    'daily_schedules',
+    (s) => s.date === tomorrow && s.employee_id === employeeId
+  );
+  const tomorrowActiveLeave = db.findOne(
+    'leaves',
+    (l) =>
+      l.employee_id === employeeId &&
+      l.status === 'Approved' &&
+      tomorrow >= l.start_date &&
+      tomorrow <= l.end_date
+  );
+
+  const tomorrowData = {
+    date: tomorrow,
+    site_name: tomorrowDailySchedule ? tomorrowDailySchedule.site_name : null,
+    scheduled_by: tomorrowDailySchedule ? tomorrowDailySchedule.scheduled_by_name : null,
+    scheduled_at: tomorrowDailySchedule ? tomorrowDailySchedule.updated_at : null,
+    schedule: tomorrowSchedule,
+    leave: tomorrowActiveLeave,
+    is_scheduled: Boolean(tomorrowDailySchedule && tomorrowDailySchedule.site_name),
+  };
+
   let punchState = 'NOT_PUNCHED_IN';
   if (record) {
     if (record.punch_in && !record.punch_out) {
@@ -67,6 +98,7 @@ router.get('/today-status', requireAuth, (req, res) => {
     daily_schedule: dailySchedule,
     schedule: todaySchedule,
     leave: activeLeave,
+    tomorrow: tomorrowData,
     settings: {
       work_start_time: settings.work_start_time || '07:30',
       work_end_time: settings.work_end_time || '16:30',

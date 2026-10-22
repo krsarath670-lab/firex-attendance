@@ -4,6 +4,7 @@ import { getCurrentCoordinates } from '../../utils/gps';
 import { queuePunchAction, syncOfflineQueue, getOfflineQueue, subscribeToSyncStatus } from '../../utils/offlineQueue';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LabourHistory } from './LabourHistory';
+import { LabourSchedule } from './LabourSchedule';
 import { LabourCorrectionModal } from './LabourCorrectionModal';
 import { LabourLeaveModal } from './LabourLeaveModal';
 import { SelfieCaptureModal } from '../../components/SelfieCaptureModal';
@@ -24,6 +25,9 @@ import {
   RefreshCw,
   LogOut,
   User,
+  Building2,
+  ArrowRight,
+  ChevronRight,
 } from 'lucide-react';
 
 export function LabourHome() {
@@ -258,6 +262,19 @@ export function LabourHome() {
   const notPunchedIn = !todayData || todayData?.punchState === 'NOT_PUNCHED_IN';
   const hasApprovedLeave = !!todayData?.leave;
 
+  const tomorrowData = todayData?.tomorrow;
+  const tomorrowFormattedDate = (() => {
+    if (!tomorrowData?.date) return 'Tomorrow';
+    const [y, m, d] = tomorrowData.date.split('-').map(Number);
+    const dateObj = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    return dateObj.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+  })();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-16">
       {/* Top Mobile Bar */}
@@ -322,10 +339,10 @@ export function LabourHome() {
 
       {/* Navigation Switch Tabs */}
       <div className="max-w-md mx-auto w-full px-4 pt-3">
-        <div className="grid grid-cols-3 p-1 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold text-slate-400">
+        <div className="grid grid-cols-4 p-1 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-bold text-slate-400">
           <button
             onClick={() => setCurrentView('punch')}
-            className={`py-2 rounded-xl transition flex items-center justify-center space-x-1.5 ${
+            className={`py-2 rounded-xl transition flex items-center justify-center space-x-1 ${
               currentView === 'punch' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow' : 'hover:text-white'
             }`}
           >
@@ -333,8 +350,17 @@ export function LabourHome() {
             <span>Punch</span>
           </button>
           <button
+            onClick={() => setCurrentView('schedule')}
+            className={`py-2 rounded-xl transition flex items-center justify-center space-x-1 ${
+              currentView === 'schedule' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow' : 'hover:text-white'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Schedule</span>
+          </button>
+          <button
             onClick={() => setCurrentView('history')}
-            className={`py-2 rounded-xl transition flex items-center justify-center space-x-1.5 ${
+            className={`py-2 rounded-xl transition flex items-center justify-center space-x-1 ${
               currentView === 'history' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow' : 'hover:text-white'
             }`}
           >
@@ -343,9 +369,9 @@ export function LabourHome() {
           </button>
           <button
             onClick={() => setShowLeaveModal(true)}
-            className="py-2 rounded-xl transition flex items-center justify-center space-x-1.5 hover:text-white"
+            className="py-2 rounded-xl transition flex items-center justify-center space-x-1 hover:text-white"
           >
-            <Calendar className="w-3.5 h-3.5 text-rose-400" />
+            <FileEdit className="w-3.5 h-3.5 text-rose-400" />
             <span>Leaves</span>
           </button>
         </div>
@@ -354,7 +380,9 @@ export function LabourHome() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-4 space-y-4">
         {currentView === 'history' ? (
-          <LabourHistory onRequestCorrection={() => setShowCorrectionModal(true)} />
+          <LabourHistory onRequestCorrection={() => setShowCorrectionModal(true)} onBack={() => setCurrentView('punch')} />
+        ) : currentView === 'schedule' ? (
+          <LabourSchedule onBack={() => setCurrentView('punch')} />
         ) : (
           <>
             {/* Employee Profile Header Card */}
@@ -405,6 +433,95 @@ export function LabourHome() {
                   <Calendar className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                   <span>{todayData?.today || new Date().toISOString().substring(0, 10)}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* NEXT DAY SCHEDULE (TOMORROW'S WORK SITE) */}
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 rounded-3xl p-4 shadow-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 text-xs font-black text-indigo-400 uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Next Day Schedule (Tomorrow)</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
+                  {tomorrowFormattedDate}
+                </span>
+              </div>
+
+              {tomorrowData?.is_scheduled ? (
+                <div className="bg-slate-950/90 rounded-2xl p-3 border border-indigo-500/30 space-y-2">
+                  <div className="flex items-start space-x-2">
+                    <MapPin className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Report to Site:</span>
+                      <div className="text-sm font-black text-white leading-tight break-words">
+                        {tomorrowData.site_name}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">
+                      By: <strong className="text-slate-300">{tomorrowData.scheduled_by || 'Supervisor'}</strong>
+                    </span>
+                    <span className="text-emerald-400 font-bold flex items-center space-x-1 flex-shrink-0">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span>Confirmed</span>
+                    </span>
+                  </div>
+                </div>
+              ) : tomorrowData?.leave ? (
+                <div className="bg-purple-950/40 rounded-2xl p-3 border border-purple-500/30 text-purple-200 text-xs flex items-center space-x-2.5">
+                  <Calendar className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold block">Approved Leave Tomorrow</span>
+                    <span className="text-[11px] text-purple-300/80">{tomorrowData.leave.leave_type}</span>
+                  </div>
+                </div>
+              ) : tomorrowData?.schedule?.is_friday ? (
+                <div className="bg-emerald-950/30 rounded-2xl p-3 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold block">Tomorrow is Friday (Weekly Holiday)</span>
+                    <span className="text-[10px] text-emerald-400/80">Official Weekly Off • 100% OT if on duty</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
+                    Weekly Off
+                  </span>
+                </div>
+              ) : tomorrowData?.schedule?.is_public_holiday ? (
+                <div className="bg-amber-950/30 rounded-2xl p-3 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-bold block">Tomorrow is Public Holiday</span>
+                    <span className="text-[10px] text-amber-400/80">{tomorrowData.schedule.holiday_name}</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30">
+                    Holiday
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-slate-950/60 rounded-2xl p-3 border border-slate-800 text-xs space-y-1">
+                  <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Site Assignment Pending</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Supervisor / Engineer will schedule your site this evening. Please check back before tomorrow morning.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                <span className="flex items-center space-x-1">
+                  <Clock className="w-3 h-3 text-slate-500" />
+                  <span>Tomorrow's Shift:</span>
+                </span>
+                <span className="font-mono font-bold text-white">
+                  {tomorrowData?.schedule?.is_friday
+                    ? 'Weekly Off'
+                    : tomorrowData?.schedule?.is_saturday
+                    ? '07:30 AM - 01:00 PM (Half Day)'
+                    : '07:30 AM - 04:30 PM (9h)'}
+                </span>
               </div>
             </div>
 
@@ -562,8 +679,16 @@ export function LabourHome() {
               )}
 
               {isPunchedOut && (
-                <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-3xl text-center text-xs text-slate-400">
-                  You have already punched in and out for today. See you tomorrow!
+                <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-3xl text-center text-xs text-slate-400 space-y-2.5">
+                  <p>You have completed your shift today. See your tomorrow's schedule above!</p>
+                  <button
+                    onClick={() => setCurrentView('schedule')}
+                    className="inline-flex items-center space-x-1 px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-bold transition"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>View 7-Day Schedule</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
             </div>
