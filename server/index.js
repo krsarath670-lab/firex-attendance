@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { authMiddleware } from './auth.js';
+import db from './db.js';
 import authRoutes from './routes/authRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
@@ -50,7 +51,13 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     timezone: 'Asia/Bahrain',
     uptime_seconds: process.uptime(),
+    database: db.getStatus(),
   });
+});
+
+// Database persistence health check endpoint
+app.get('/api/database/status', (req, res) => {
+  res.json(db.getStatus());
 });
 
 // Serve frontend in production

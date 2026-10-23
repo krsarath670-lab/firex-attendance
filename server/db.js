@@ -2,10 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
+import pg from 'pg';
+
+const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, 'data');
+
+// Allow configurable DATA_DIR (e.g. for Render Persistent Disks mounted at /var/data)
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const DB_FILE = path.join(DATA_DIR, 'attendance_database.json');
 
@@ -16,11 +21,10 @@ if (!fs.existsSync(BACKUP_DIR)) {
   fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
-// Initial seed data generator
+// Initial seed data generator (Only permanent management accounts)
 function getInitialSeed() {
   const salt = bcrypt.genSaltSync(10);
   const adminPassHash = bcrypt.hashSync('admin123', salt);
-  const labourPassHash = bcrypt.hashSync('labour123', salt);
 
   return {
     settings: {
@@ -62,7 +66,22 @@ function getInitialSeed() {
       { id: 'hol-15', name: 'Bahrain National Day (Day 2)', date: '2026-12-17', year: 2026, is_official: true, remarks: 'Accession Day' },
       { id: 'hol-16', name: 'New Year\'s Day 2027', date: '2027-01-01', year: 2027, is_official: true, remarks: 'Official Public Holiday' },
     ],
-    sites: [],
+    sites: [
+      {
+        id: 'site-ho',
+        site_code: 'SITE-HO',
+        site_name: 'FIREX Main Workshop & HQ',
+        status: 'Active',
+        remarks: 'Main Central Workshop',
+      },
+      {
+        id: 'site-bapco',
+        site_code: 'SITE-BAPCO',
+        site_name: 'BAPCO Modernization Site',
+        status: 'Active',
+        remarks: 'Industrial Site',
+      },
+    ],
     daily_schedules: [],
     users: [
       {
@@ -84,7 +103,7 @@ function getInitialSeed() {
         email: 'supervisor@firex.com',
         username: 'supervisor',
         password_hash: adminPassHash,
-        phone: '+973 3611 7788',
+        phone: '+973 39027232',
         role: 'SUPERVISOR',
         employee_id: 'SUP-0001',
         status: 'Active',
@@ -104,19 +123,22 @@ function getInitialSeed() {
 class Database {
   constructor() {
     this.memory = null;
+    this.pool = null;
+    this.isPostgresConnected = false;
+    this.postgresError = null;
     this.init();
+    this.setupPostgres();
     this.setupAutoBackup();
   }
 
   init() {
     if (!fs.existsSync(DB_FILE)) {
       this.memory = getInitialSeed();
-      this.save();
+      this.saveLocal();
     } else {
       try {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         this.memory = JSON.parse(raw);
-        // Ensure all required collections exist
         const defaultSeed = getInitialSeed();
         for (const key of Object.keys(defaultSeed)) {
           if (!this.memory[key]) {
@@ -124,21 +146,100 @@ class Database {
           }
         }
       } catch (err) {
-        console.error('Error reading database file, resetting to initial seed:', err);
+        console.error('[DB] Error reading database file, using safe seed:', err);
         this.memory = getInitialSeed();
-        this.save();
+        this.saveLocal();
       }
     }
   }
 
-  save() {
+  // Setup PostgreSQL connection pool if DATABASE_URL is configured
+  async setupPostgres() {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.log('[DB] No DATABASE_URL set. Running in local JSON storage mode.');
+      return;
+    }
+
+    try {
+      console.log('[DB] Connecting to Cloud PostgreSQL database...');
+      const isLocalhost = dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1');
+      this.pool = new Pool({
+        connectionString: dbUrl,
+        ssl: isLocalhost ? false : { rejectUnauthorized: false },
+        connectionTimeoutMillis: 10000,
+      });
+
+      // Test connection
+      const client = await this.pool.connect();
+      try {
+        // Create table for permanent key-value collection storage
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS firex_production_store (
+            collection VARCHAR(64) PRIMARY KEY,
+            data JSONB NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          );
+        `);
+
+        // Load all collections from PostgreSQL into memory
+        const res = await client.query('SELECT collection, data FROM firex_production_store');
+        if (res.rows.length > 0) {
+          console.log(`[DB] Successfully loaded ${res.rows.length} collections from PostgreSQL Cloud Database!`);
+          for (const row of res.rows) {
+            this.memory[row.collection] = row.data;
+          }
+          // Also save local backup snapshot of cloud data
+          this.saveLocal();
+        } else {
+          console.log('[DB] PostgreSQL store is empty. Migrating initial seed to PostgreSQL...');
+          for (const [col, data] of Object.entries(this.memory)) {
+            await client.query(
+              `INSERT INTO firex_production_store (collection, data, updated_at)
+               VALUES ($1, $2, NOW())
+               ON CONFLICT (collection) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+              [col, JSON.stringify(data)]
+            );
+          }
+          console.log('[DB] Initial seed successfully persisted to Cloud PostgreSQL!');
+        }
+
+        this.isPostgresConnected = true;
+        this.postgresError = null;
+        console.log('✅ [DB] Cloud PostgreSQL Database is ACTIVE and 100% PERSISTENT.');
+      } finally {
+        client.release();
+      }
+    } catch (err) {
+      this.isPostgresConnected = false;
+      this.postgresError = err.message;
+      console.error('❌ [DB] PostgreSQL Connection Error:', err.message);
+      console.log('[DB] Operating in resilient fallback mode using local storage.');
+    }
+  }
+
+  saveLocal() {
     try {
       const tempPath = `${DB_FILE}.tmp`;
       fs.writeFileSync(tempPath, JSON.stringify(this.memory, null, 2), 'utf8');
       fs.renameSync(tempPath, DB_FILE);
     } catch (err) {
-      console.error('Database write error:', err);
-      throw new Error('Database write failure');
+      console.error('[DB] Local write error:', err);
+    }
+  }
+
+  // Persist collection asynchronously to PostgreSQL if connected
+  async persistToPostgres(collection, data) {
+    if (!this.pool || !this.isPostgresConnected) return;
+    try {
+      await this.pool.query(
+        `INSERT INTO firex_production_store (collection, data, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (collection) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+        [collection, JSON.stringify(data)]
+      );
+    } catch (err) {
+      console.error(`[DB] Failed to persist collection "${collection}" to PostgreSQL:`, err.message);
     }
   }
 
@@ -148,7 +249,8 @@ class Database {
 
   set(collection, data) {
     this.memory[collection] = data;
-    this.save();
+    this.saveLocal();
+    this.persistToPostgres(collection, data);
     return data;
   }
 
@@ -204,7 +306,7 @@ class Database {
     return true;
   }
 
-  // Generate next unique Employee ID e.g. LAB-0005
+  // Generate next unique Employee ID e.g. LAB-0001
   generateEmployeeId() {
     const employees = this.get('employees');
     let maxNum = 0;
@@ -264,11 +366,11 @@ class Database {
 
       const logs = this.get('backup_logs');
       logs.unshift(log);
-      this.set('backup_logs', logs.slice(0, 50)); // keep last 50 backup logs
+      this.set('backup_logs', logs.slice(0, 50));
 
       return { success: true, filename, log };
     } catch (err) {
-      console.error('Backup creation error:', err);
+      console.error('[DB] Backup creation error:', err);
       return { success: false, error: err.message };
     }
   }
@@ -277,7 +379,6 @@ class Database {
     if (!backupJsonData || typeof backupJsonData !== 'object') {
       throw new Error('Invalid backup data format.');
     }
-    // Verify required collections
     const requiredKeys = ['users', 'employees', 'attendance', 'settings'];
     for (const key of requiredKeys) {
       if (!backupJsonData[key]) {
@@ -288,19 +389,40 @@ class Database {
     // Save previous snapshot as safety before restoring
     this.createBackup();
 
-    this.memory = backupJsonData;
-    this.save();
+    for (const [key, data] of Object.entries(backupJsonData)) {
+      this.set(key, data);
+    }
     return true;
   }
 
   setupAutoBackup() {
-    // Run automated backup every 24 hours
     setInterval(() => {
       const settings = this.get('settings') || {};
       if (settings.auto_backup_enabled !== false) {
         this.createBackup();
       }
     }, 24 * 60 * 60 * 1000);
+  }
+
+  getStatus() {
+    const hasDbUrl = Boolean(process.env.DATABASE_URL);
+    return {
+      storage_type: this.isPostgresConnected ? 'PostgreSQL Cloud Database' : 'Local Container Storage',
+      is_persistent: this.isPostgresConnected || Boolean(process.env.DATA_DIR),
+      is_postgres_connected: this.isPostgresConnected,
+      has_database_url: hasDbUrl,
+      postgres_error: this.postgresError,
+      data_dir: DATA_DIR,
+      counts: {
+        users: (this.memory.users || []).length,
+        employees: (this.memory.employees || []).length,
+        attendance: (this.memory.attendance || []).length,
+        sites: (this.memory.sites || []).length,
+        daily_schedules: (this.memory.daily_schedules || []).length,
+        leaves: (this.memory.leaves || []).length,
+        backups: (this.memory.backup_logs || []).length,
+      },
+    };
   }
 }
 

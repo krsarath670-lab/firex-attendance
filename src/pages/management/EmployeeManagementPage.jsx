@@ -29,6 +29,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
   const [employees, setEmployees] = useState([]);
   const [sites, setSites] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
+  const [dbStatus, setDbStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -68,14 +69,16 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
   useEffect(() => {
     async function loadMeta() {
       try {
-        const [sitesRes, supRes] = await Promise.all([
+        const [sitesRes, supRes, dbRes] = await Promise.all([
           fetch('/api/sites', { headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` } }),
           fetch('/api/employees/supervisors-list', {
             headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` },
           }),
+          fetch('/api/database/status'),
         ]);
         if (sitesRes.ok) setSites(await sitesRes.json());
         if (supRes.ok) setSupervisors(await supRes.json());
+        if (dbRes.ok) setDbStatus(await dbRes.json());
       } catch (err) {
         console.error(err);
       }
@@ -88,7 +91,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
   }, [search, departmentFilter, supervisorFilter, statusFilter]);
 
   const handleDeleteEmployee = async (emp) => {
-    const confirmMsg = `Are you sure you want to permanently delete ${emp.full_name} (${emp.employee_id})?\n\nThis will remove their account and all attendance records.`;
+    const confirmMsg = `Remove ${emp.full_name} (${emp.employee_id})?\n\nNOTE: Historical attendance records, punch times, and locations are PERMANENTLY PRESERVED for company and labor records.\n\nTip: You can also simply toggle the status to "Inactive" to deactivate login without removing the profile.`;
     if (!window.confirm(confirmMsg)) return;
 
     try {
@@ -97,28 +100,9 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
         headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete employee');
+      if (!res.ok) throw new Error(data.error || 'Failed to remove employee');
 
-      alert(data.message || 'Employee deleted successfully.');
-      fetchEmployees();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleDeleteAllEmployees = async () => {
-    const confirmMsg = `⚠️ WARNING: Are you sure you want to delete ALL labour employees and clear attendance history to start completely fresh?\n\nManagement accounts (Engineer & Supervisor) and Sites will be preserved.`;
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      const res = await fetch('/api/employees/delete-all', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to wipe employees');
-
-      alert(data.message);
+      alert(data.message || 'Employee profile removed.');
       fetchEmployees();
     } catch (err) {
       alert(err.message);
@@ -173,15 +157,26 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
         </div>
 
         <div className="flex items-center space-x-2">
-          {employees.length > 0 && (
-            <button
-              onClick={handleDeleteAllEmployees}
-              className="px-3.5 py-2.5 bg-slate-900 hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 border border-rose-900/40 rounded-2xl text-xs font-semibold flex items-center space-x-1.5 transition"
-              title="Delete all sample employees to start fresh"
+          {dbStatus && (
+            <div
+              className={`px-3 py-1.5 rounded-2xl text-[11px] font-bold border flex items-center space-x-1.5 ${
+                dbStatus.is_postgres_connected
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+              }`}
+              title={
+                dbStatus.is_postgres_connected
+                  ? 'All records are saved directly to persistent cloud PostgreSQL'
+                  : 'Operating in local container mode'
+              }
             >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Delete All</span>
-            </button>
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  dbStatus.is_postgres_connected ? 'bg-emerald-400 animate-pulse' : 'bg-indigo-400'
+                }`}
+              />
+              <span>{dbStatus.storage_type}</span>
+            </div>
           )}
 
           <button

@@ -322,69 +322,35 @@ router.put('/:id', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, r
   });
 });
 
-// DELETE /api/employees/:id (Delete individual employee)
-router.delete('/:id', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res) => {
+// DELETE /api/employees/:id (Safe employee record removal - ATTENDANCE HISTORY IS NEVER DELETED)
+router.delete('/:id', requireAuth, requireRole(['ENGINEER']), (req, res) => {
   const employee = db.findById('employees', req.params.id);
   if (!employee) {
     return res.status(404).json({ error: 'Employee not found' });
   }
 
-  // Remove corresponding user account
+  // Deactivate corresponding user account so credentials can no longer be used
   if (employee.user_id) {
-    db.delete('users', employee.user_id);
+    db.update('users', employee.user_id, { status: 'Inactive' });
   }
 
-  // Remove employee attendance records and correction requests
-  const attendances = db.get('attendance').filter((a) => a.employee_id !== employee.employee_id);
-  db.set('attendance', attendances);
+  // NOTE: Attendance records, shift logs, and location punches are PERMANENTLY PRESERVED
+  // for labor law compliance, payroll audit, and company records. They are NEVER deleted.
 
-  const corrections = db.get('attendance_corrections').filter((c) => c.employee_id !== employee.employee_id);
-  db.set('attendance_corrections', corrections);
-
-  // Remove employee record
+  // Remove active employee profile
   db.delete('employees', employee.id);
 
   db.audit({
     employee_id: employee.employee_id,
-    action: 'EMPLOYEE_DELETED',
+    action: 'EMPLOYEE_REMOVED',
     old_value: employee,
-    reason: `Employee ${employee.full_name} (${employee.employee_id}) removed from system`,
-    changed_by: req.user.id,
-    changed_by_name: req.user.name,
-  });
-
-  res.json({ message: `Employee ${employee.full_name} deleted successfully.` });
-});
-
-// POST /api/employees/delete-all (Delete ALL Labour employees to start fresh)
-router.post('/delete-all', requireAuth, requireRole(['ENGINEER', 'SUPERVISOR']), (req, res) => {
-  const allEmployees = db.get('employees');
-  const count = allEmployees.length;
-
-  // Keep only Engineer and Supervisor users
-  const adminUsers = db.get('users').filter((u) => u.role === 'ENGINEER' || u.role === 'SUPERVISOR');
-  db.set('users', adminUsers);
-
-  // Clear employees
-  db.set('employees', []);
-
-  // Clear attendance records, corrections, daily schedules, leaves & audit
-  db.set('attendance', []);
-  db.set('attendance_corrections', []);
-  db.set('daily_schedules', []);
-  db.set('leaves', []);
-  db.set('attendance_audit', []);
-
-  db.audit({
-    employee_id: null,
-    action: 'ALL_EMPLOYEES_PURGED',
-    reason: `All ${count} labour employee records and past attendance wiped for fresh onboarding`,
+    reason: `Employee profile ${employee.full_name} (${employee.employee_id}) removed by Engineer. Historical attendance preserved.`,
     changed_by: req.user.id,
     changed_by_name: req.user.name,
   });
 
   res.json({
-    message: `All ${count} employee records and attendance history have been cleared. Ready for fresh employee entry!`,
+    message: `Employee ${employee.full_name} removed. Attendance records are permanently preserved.`,
   });
 });
 
