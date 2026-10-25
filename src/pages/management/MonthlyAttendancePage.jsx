@@ -98,6 +98,31 @@ export function MonthlyAttendancePage() {
     exportToExcel(exportRows, `FIREX-Monthly-Attendance-${year}-${month}`);
   };
 
+  const handleDownloadTimesheet = async (empId, empName) => {
+    try {
+      const res = await fetch(
+        `/api/reports/timesheet-excel?employee_id=${encodeURIComponent(empId)}&month=${month}&year=${year}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` },
+        }
+      );
+      if (!res.ok) throw new Error('Failed to generate individual timesheet');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = (empName || 'Employee').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const mName = monthNames[parseInt(month, 10) - 1];
+      a.download = `FIREX_${safeName}_${mName}_${year}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert(err.message || 'Error downloading timesheet');
+    }
+  };
+
   const handleExportPDF = () => {
     const columns = ['Employee ID', 'Name', 'Dept', 'Present', 'Late', 'Absent', 'Regular', 'OT', 'Total'];
     const rows = summary.map((s) => [
@@ -274,6 +299,7 @@ export function MonthlyAttendancePage() {
                 <th className="pb-3 px-3">Total Hours</th>
                 <th className="pb-3 px-3">Avg Daily</th>
                 <th className="pb-3 px-3 text-center">Corrections</th>
+                <th className="pb-3 px-3 text-right">Timesheet</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -319,6 +345,16 @@ export function MonthlyAttendancePage() {
                     <td className="py-3 px-3 font-mono font-bold text-emerald-400">{s.total_hours_formatted}</td>
                     <td className="py-3 px-3 font-mono text-slate-300">{s.avg_hours_formatted}</td>
                     <td className="py-3 px-3 text-center text-slate-400">{s.correction_count}</td>
+                    <td className="py-3 px-3 text-right">
+                      <button
+                        onClick={() => handleDownloadTimesheet(s.employee_id, s.employee_name)}
+                        className="px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs font-semibold inline-flex items-center space-x-1 transition"
+                        title={`Export Timesheet for ${s.employee_name}`}
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Timesheet</span>
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db.js';
 import { requireAuth, requireRole } from '../auth.js';
 import { getBahrainDateString } from '../attendanceEngine.js';
+import { generateMonthlyTimesheet } from '../timesheetGenerator.js';
 
 const router = express.Router();
 
@@ -136,6 +137,45 @@ router.get('/employee', requireAuth, (req, res) => {
     },
     records,
   });
+});
+
+// GET /api/reports/timesheet-excel (Individual Employee Monthly Timesheet matching Attendance Sheet.xlsx)
+router.get('/timesheet-excel', requireAuth, async (req, res) => {
+  try {
+    const { employee_id, month, year } = req.query;
+
+    let targetEmpId = employee_id;
+    if (req.user.role === 'LABOUR') {
+      targetEmpId = req.user.employee_id;
+    }
+
+    if (!targetEmpId) {
+      return res.status(400).json({ error: 'Employee ID is required.' });
+    }
+
+    const employee = db.findOne('employees', (e) => e.employee_id === targetEmpId || e.id === targetEmpId);
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found.' });
+    }
+
+    const today = getBahrainDateString();
+    const targetYear = parseInt(year || today.substring(0, 4), 10);
+    const targetMonth = parseInt(month || today.substring(5, 7), 10);
+
+    const { filename, buffer } = await generateMonthlyTimesheet({
+      employee,
+      month: targetMonth,
+      year: targetYear,
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    return res.send(buffer);
+  } catch (err) {
+    console.error('Error generating timesheet excel:', err);
+    return res.status(500).json({ error: err.message || 'Failed to generate monthly timesheet.' });
+  }
 });
 
 export default router;

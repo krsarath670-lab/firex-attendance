@@ -22,6 +22,8 @@ import {
   Briefcase,
   Trash2,
   Lock,
+  FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 
 export function EmployeeManagementPage({ initialOpenAdd = false }) {
@@ -41,6 +43,7 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
   const [showAddModal, setShowAddModal] = useState(initialOpenAdd);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [resetPasswordEmployee, setResetPasswordEmployee] = useState(null);
+  const [exportingEmployee, setExportingEmployee] = useState(null);
   const [viewingEmployeeId, setViewingEmployeeId] = useState(null);
   const [viewDetailsData, setViewDetailsData] = useState(null);
 
@@ -313,17 +316,10 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
                       <div className="flex items-center justify-end space-x-1.5">
                         <button
                           onClick={() => handleOpenDetails(emp.id)}
-                          title="View Details"
+                          title="View Employee"
                           className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setResetPasswordEmployee(emp)}
-                          title="Reset Password"
-                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition"
-                        >
-                          <Key className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setEditingEmployee(emp)}
@@ -331,6 +327,21 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
                           className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setExportingEmployee(emp)}
+                          title="Export Monthly Excel"
+                          className="p-1.5 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 rounded-lg transition flex items-center space-x-1"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5" />
+                          <span className="hidden xl:inline text-[10px] font-bold">Export Excel</span>
+                        </button>
+                        <button
+                          onClick={() => setResetPasswordEmployee(emp)}
+                          title="Reset Password"
+                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition"
+                        >
+                          <Key className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleToggleStatus(emp)}
@@ -402,10 +413,25 @@ export function EmployeeManagementPage({ initialOpenAdd = false }) {
         />
       )}
 
+      {/* Export Monthly Excel Modal */}
+      {exportingEmployee && (
+        <ExportMonthlyExcelModal
+          employee={exportingEmployee}
+          allEmployees={employees}
+          onClose={() => setExportingEmployee(null)}
+        />
+      )}
+
       {/* View Details Modal */}
       {viewingEmployeeId && viewDetailsData && (
         <EmployeeDetailsModal
           data={viewDetailsData}
+          onExport={() => {
+            const emp = employees.find((e) => e.id === viewingEmployeeId) || viewDetailsData.employee;
+            setViewingEmployeeId(null);
+            setViewDetailsData(null);
+            setExportingEmployee(emp);
+          }}
           onClose={() => {
             setViewingEmployeeId(null);
             setViewDetailsData(null);
@@ -948,7 +974,7 @@ function EditEmployeeModal({ employee, sites, supervisors, onClose, onSuccess })
 }
 
 // Sub-component: Employee Details Modal
-function EmployeeDetailsModal({ data, onClose }) {
+function EmployeeDetailsModal({ data, onExport, onClose }) {
   const { employee, summary, recent_attendance } = data;
 
   return (
@@ -975,15 +1001,28 @@ function EmployeeDetailsModal({ data, onClose }) {
             </p>
           </div>
 
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
-              employee.status === 'Active'
-                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-            }`}
-          >
-            {employee.status}
-          </span>
+          <div className="flex items-center space-x-2 mr-8">
+            {onExport && (
+              <button
+                type="button"
+                onClick={onExport}
+                className="px-3 py-1.5 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition shadow-sm"
+                title="Export Monthly Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Export Monthly Excel</span>
+              </button>
+            )}
+            <span
+              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
+                employee.status === 'Active'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+              }`}
+            >
+              {employee.status}
+            </span>
+          </div>
         </div>
 
         {/* Meta Info */}
@@ -1178,6 +1217,215 @@ function ResetEmployeePasswordModal({ employee, onClose, onSuccess }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Sub-component: Export Monthly Excel Modal
+function ExportMonthlyExcelModal({ employee, allEmployees, onClose }) {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  const [selectedEmpId, setSelectedEmpId] = useState(employee?.employee_id || '');
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' },
+  ];
+
+  const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+
+  const currentEmp = allEmployees?.find((e) => e.employee_id === selectedEmpId) || employee;
+  const monthName = months.find((m) => m.value === Number(selectedMonth))?.label || '';
+  const safeName = (currentEmp?.full_name || 'Employee').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+  const previewFilename = `FIREX_${safeName}_${monthName}_${selectedYear}.xlsx`;
+
+  const handleDownload = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(
+        `/api/reports/timesheet-excel?employee_id=${encodeURIComponent(selectedEmpId)}&month=${selectedMonth}&year=${selectedYear}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` },
+        }
+      );
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Download failed (${res.status})`);
+      }
+
+      let filename = previewFilename;
+      const disposition = res.headers.get('Content-Disposition');
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) filename = match[1];
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error downloading monthly timesheet');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white bg-slate-800 rounded-full transition"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-white">Monthly Employee Timesheet</h3>
+            <p className="text-xs text-slate-400">Generate individual attendance report matching Excel template</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {/* Employee Selector */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Select Employee</label>
+            <select
+              value={selectedEmpId}
+              onChange={(e) => setSelectedEmpId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+            >
+              {allEmployees?.map((emp) => (
+                <option key={emp.id} value={emp.employee_id}>
+                  {emp.full_name} ({emp.employee_id}) — {emp.department || 'Labour'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Month & Year Selectors */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+              >
+                {months.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Details Preview Card */}
+          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Employee:</span>
+              <span className="text-white font-bold">{currentEmp?.full_name}</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Employee ID:</span>
+              <span className="text-rose-400 font-mono font-bold">{currentEmp?.employee_id}</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Supervisor:</span>
+              <span className="text-slate-300 font-semibold">{currentEmp?.supervisor_name || 'Unassigned'}</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Regular Shift:</span>
+              <span className="text-slate-300">07:30 to 16:30 (9h) • Fri Off</span>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex flex-col space-y-1">
+              <span className="text-[10px] font-bold uppercase text-slate-500">Output File Name</span>
+              <span className="font-mono text-emerald-400 text-[11px] truncate">{previewFilename}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end space-x-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={loading}
+            className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 flex items-center space-x-2 transition disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Generating Timesheet...</span>
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Export Monthly Excel</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
