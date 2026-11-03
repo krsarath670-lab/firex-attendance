@@ -4,5 +4,3 @@ dist
 .env.local
 *.log
 .DS_Store
-server/data/backups/*
-!server/data/backups/.gitkeep

@@ -1,0 +1,319 @@
+{
+  "settings": {
+    "id": "settings-1",
+    "company_name": "FIREX",
+    "country": "Bahrain",
+    "timezone": "Asia/Bahrain",
+    "work_start_time": "07:30",
+    "work_end_time": "16:30",
+    "saturday_start_time": "07:30",
+    "saturday_end_time": "13:00",
+    "friday_holiday": true,
+    "overtime_enabled": true,
+    "grace_period_minutes": 15,
+    "gps_enabled": true,
+    "gps_enforcement_enabled": false,
+    "default_radius": 100,
+    "created_at": "2026-09-28T13:14:36.929Z",
+    "updated_at": "2026-09-30T19:00:00.000Z"
+  },
+  "public_holidays": [
+    {
+      "id": "hol-1",
+      "name": "New Year's Day",
+      "date": "2026-01-01",
+      "year": 2026,
+      "remarks": "Official National Holiday"
+    },
+    {
+      "id": "hol-2",
+      "name": "Eid Al Fitr (Day 1)",
+      "date": "2026-03-20",
+      "year": 2026,
+      "remarks": "Islamic Holiday"
+    },
+    {
+      "id": "hol-3",
+      "name": "Eid Al Fitr (Day 2)",
+      "date": "2026-03-21",
+      "year": 2026,
+      "remarks": "Islamic Holiday"
+    },
+    {
+      "id": "hol-4",
+      "name": "Eid Al Fitr (Day 3)",
+      "date": "2026-03-22",
+      "year": 2026,
+      "remarks": "Islamic Holiday"
+    },
+    {
+      "id": "hol-5",
+      "name": "Labour Day",
+      "date": "2026-05-01",
+      "year": 2026,
+      "remarks": "International Workers Day"
+    },
+    {
+      "id": "hol-6",
+      "name": "Arafah Day",
+      "date": "2026-05-26",
+      "year": 2026,
+      "remarks": "Hajj Pilgrimage Holiday"
+    },
+    {
+      "id": "hol-7",
+      "name": "Eid Al Adha (Day 1)",
+      "date": "2026-05-27",
+      "year": 2026,
+      "remarks": "Feast of Sacrifice"
+    },
+    {
+      "id": "hol-8",
+      "name": "Eid Al Adha (Day 2)",
+      "date": "2026-05-28",
+      "year": 2026,
+      "remarks": "Feast of Sacrifice"
+    },
+    {
+      "id": "hol-9",
+      "name": "Eid Al Adha (Day 3)",
+      "date": "2026-05-29",
+      "year": 2026,
+      "remarks": "Feast of Sacrifice"
+    },
+    {
+      "id": "hol-10",
+      "name": "Islamic New Year (Hijri)",
+      "date": "2026-06-16",
+      "year": 2026,
+      "remarks": "Muharram 1st"
+    },
+    {
+      "id": "hol-11",
+      "name": "Ashura (Day 1)",
+      "date": "2026-06-25",
+      "year": 2026,
+      "remarks": "Muharram 9th"
+    },
+    {
+      "id": "hol-12",
+      "name": "Ashura (Day 2)",
+      "date": "2026-06-26",
+      "year": 2026,
+      "remarks": "Muharram 10th"
+    },
+    {
+      "id": "hol-13",
+      "name": "Prophet's Birthday (Mawlid)",
+      "date": "2026-08-25",
+      "year": 2026,
+      "remarks": "Mawlid Al-Nabi"
+    },
+    {
+      "id": "hol-14",
+      "name": "Bahrain National Day",
+      "date": "2026-12-16",
+      "year": 2026,
+      "remarks": "National Day Celebration"
+    },
+    {
+      "id": "hol-15",
+      "name": "Bahrain Accession Day",
+      "date": "2026-12-17",
+      "year": 2026,
+      "remarks": "His Majesty King's Accession Day"
+    },
+    {
+      "id": "hol-16",
+      "name": "New Year's Day",
+      "date": "2027-01-01",
+      "year": 2027,
+      "remarks": "Official National Holiday"
+    }
+  ],
+  "sites": [
+    {
+      "id": "site-1790793425577-dedi",
+      "site_code": "SITE-5577",
+      "site_name": "Al Seef Commercial Tower - Block 428",
+      "status": "Active",
+      "remarks": "Added via daily scheduling",
+      "created_at": "2026-09-30T18:37:05.577Z",
+      "updated_at": "2026-09-30T18:37:05.577Z"
+    },
+    {
+      "id": "site-1790793425588-vrqy",
+      "site_code": "SITE-5588",
+      "site_name": "BAPCO Modernization Site",
+      "status": "Active",
+      "remarks": "Added via daily scheduling",
+      "created_at": "2026-09-30T18:37:05.588Z",
+      "updated_at": "2026-09-30T18:37:05.588Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-eng",
+      "name": "HASAN ZULAIKH",
+      "email": "engineer@firex.com",
+      "username": "engineer",
+      "password_hash": "$2a$10$QGbUjOOdttpco7j5xlDXs.xPZmcDD3atHr8meAvCpfpQdyRa/bXie",
+      "phone": "38837080",
+      "role": "ENGINEER",
+      "employee_id": "ENG-0001",
+      "status": "Active",
+      "created_at": "2026-01-01T08:00:00.000Z",
+      "updated_at": "2026-10-01T12:48:43.199Z"
+    },
+    {
+      "id": "usr-sup",
+      "name": "Sarath Kr",
+      "email": "supervisor@firex.com",
+      "username": "supervisor",
+      "password_hash": "$2a$10$aZMnCGv7K0Dp3NP3b6dROuWQfJGxRP6mXASLK5MzTqMhJnr0Ihms2",
+      "phone": "+973 39027232",
+      "role": "SUPERVISOR",
+      "employee_id": "SUP-0001",
+      "status": "Active",
+      "created_at": "2026-01-01T08:00:00.000Z",
+      "updated_at": "2026-09-30T13:33:39.042Z"
+    }
+  ],
+  "employees": [],
+  "attendance": [],
+  "attendance_corrections": [],
+  "attendance_audit": [],
+  "leaves": [],
+  "backup_logs": [],
+  "daily_schedules": [],
+  "holidays": [
+    {
+      "id": "hol-1",
+      "name": "New Year's Day",
+      "date": "2026-01-01",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Public Holiday"
+    },
+    {
+      "id": "hol-2",
+      "name": "Eid Al Fitr (Day 1)",
+      "date": "2026-03-20",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-3",
+      "name": "Eid Al Fitr (Day 2)",
+      "date": "2026-03-21",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-4",
+      "name": "Eid Al Fitr (Day 3)",
+      "date": "2026-03-22",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-5",
+      "name": "Labour Day",
+      "date": "2026-05-01",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Public Holiday"
+    },
+    {
+      "id": "hol-6",
+      "name": "Arafat Day",
+      "date": "2026-05-26",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-7",
+      "name": "Eid Al Adha (Day 1)",
+      "date": "2026-05-27",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-8",
+      "name": "Eid Al Adha (Day 2)",
+      "date": "2026-05-28",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-9",
+      "name": "Eid Al Adha (Day 3)",
+      "date": "2026-05-29",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-10",
+      "name": "Islamic New Year (Hijri 1448)",
+      "date": "2026-06-16",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Subject to moon sighting"
+    },
+    {
+      "id": "hol-11",
+      "name": "Ashura (Day 1)",
+      "date": "2026-06-25",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Holiday"
+    },
+    {
+      "id": "hol-12",
+      "name": "Ashura (Day 2)",
+      "date": "2026-06-26",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Holiday"
+    },
+    {
+      "id": "hol-13",
+      "name": "Prophet's Birthday (Mawlid)",
+      "date": "2026-08-25",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Official Holiday"
+    },
+    {
+      "id": "hol-14",
+      "name": "Bahrain National Day",
+      "date": "2026-12-16",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "55th National Day"
+    },
+    {
+      "id": "hol-15",
+      "name": "Bahrain National Day (Day 2)",
+      "date": "2026-12-17",
+      "year": 2026,
+      "is_official": true,
+      "remarks": "Accession Day"
+    },
+    {
+      "id": "hol-16",
+      "name": "New Year's Day 2027",
+      "date": "2027-01-01",
+      "year": 2027,
+      "is_official": true,
+      "remarks": "Official Public Holiday"
+    }
+  ]
+}

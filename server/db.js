@@ -127,6 +127,7 @@ class Database {
     this.isPostgresConnected = false;
     this.postgresError = null;
     this.init();
+    this.syncBackupLogs();
     this.setupPostgres();
     this.setupAutoBackup();
   }
@@ -150,6 +151,64 @@ class Database {
         this.memory = getInitialSeed();
         this.saveLocal();
       }
+    }
+  }
+
+  // Scan physical BACKUP_DIR and synchronize with memory.backup_logs
+  syncBackupLogs() {
+    try {
+      if (!this.memory) return;
+      const logs = Array.isArray(this.memory.backup_logs) ? [...this.memory.backup_logs] : [];
+      const logMap = new Map();
+      for (const log of logs) {
+        if (log && log.filename) {
+          logMap.set(log.filename, log);
+        }
+      }
+
+      if (fs.existsSync(BACKUP_DIR)) {
+        const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith('.json'));
+        for (const file of files) {
+          const fullPath = path.join(BACKUP_DIR, file);
+          try {
+            const stats = fs.statSync(fullPath);
+            if (!logMap.has(file)) {
+              let records = 0;
+              try {
+                const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+                records =
+                  (parsed.attendance?.length || 0) +
+                  (parsed.employees?.length || 0) +
+                  (parsed.leaves?.length || 0) +
+                  (parsed.users?.length || 0);
+              } catch (e) {}
+
+              logMap.set(file, {
+                id: `bak-${Math.round(stats.mtimeMs) || Date.now()}`,
+                filename: file,
+                records_count: records,
+                size_bytes: stats.size,
+                created_at: stats.mtime.toISOString(),
+                status: 'SUCCESS',
+              });
+            } else {
+              const existing = logMap.get(file);
+              if (!existing.size_bytes && stats.size) {
+                existing.size_bytes = stats.size;
+              }
+            }
+          } catch (e) {
+            console.error(`[DB] Error inspecting backup file ${file}:`, e);
+          }
+        }
+      }
+
+      const merged = Array.from(logMap.values());
+      merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+      this.memory.backup_logs = merged;
+      this.saveLocal();
+    } catch (err) {
+      console.error('[DB] Error syncing backup logs:', err);
     }
   }
 
@@ -189,10 +248,20 @@ class Database {
           for (const row of res.rows) {
             this.memory[row.collection] = row.data;
           }
+          // Sync with physical backup files on disk
+          this.syncBackupLogs();
+          // Update cloud store with synced backup logs
+          await client.query(
+            `INSERT INTO firex_production_store (collection, data, updated_at)
+             VALUES ($1, $2, NOW())
+             ON CONFLICT (collection) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+            ['backup_logs', JSON.stringify(this.memory.backup_logs)]
+          );
           // Also save local backup snapshot of cloud data
           this.saveLocal();
         } else {
           console.log('[DB] PostgreSQL store is empty. Migrating initial seed to PostgreSQL...');
+          this.syncBackupLogs();
           for (const [col, data] of Object.entries(this.memory)) {
             await client.query(
               `INSERT INTO firex_production_store (collection, data, updated_at)

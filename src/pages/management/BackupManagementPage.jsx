@@ -84,6 +84,56 @@ export function BackupManagementPage() {
     }
   };
 
+  const handleDownloadSnapshotFile = async (filename) => {
+    try {
+      const res = await fetch(`/api/backup/download-file/${encodeURIComponent(filename)}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('firex_token')}` },
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Download failed.');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error downloading backup: ' + err.message);
+    }
+  };
+
+  const handleRestoreFromSnapshotFile = async (filename) => {
+    const confirmRestore = window.confirm(
+      `WARNING: Restoring will overwrite existing records with snapshot "${filename}". An automatic safety snapshot will be taken first.\n\nAre you sure you want to proceed?`
+    );
+    if (!confirmRestore) return;
+
+    setRestoring(true);
+    setMsg({ type: '', text: '' });
+    try {
+      const res = await fetch(`/api/backup/restore-file/${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('firex_token')}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Restore failed.');
+
+      setMsg({ type: 'success', text: data.message || `Database restored from "${filename}".` });
+      fetchBackupLogs();
+    } catch (err) {
+      setMsg({ type: 'error', text: 'Restore error: ' + err.message });
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const handleRestoreFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -217,36 +267,65 @@ export function BackupManagementPage() {
                 <th className="pb-3 px-3">Created Date / Time</th>
                 <th className="pb-3 px-3">Total Records</th>
                 <th className="pb-3 px-3">Size</th>
-                <th className="pb-3 px-3 text-right">Status</th>
+                <th className="pb-3 px-3 text-center">Status</th>
+                <th className="pb-3 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-500">
+                  <td colSpan="6" className="py-8 text-center text-slate-500">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto text-rose-500 mb-2" />
                     Loading backup history...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-500">
+                  <td colSpan="6" className="py-8 text-center text-slate-500">
                     No backup logs recorded yet.
                   </td>
                 </tr>
               ) : (
                 logs.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-800/40 transition font-mono text-[11px]">
-                    <td className="py-3 px-3 font-semibold text-white font-sans">{b.filename}</td>
-                    <td className="py-3 px-3 text-slate-300">
+                  <tr key={b.id || b.filename} className="hover:bg-slate-800/40 transition font-mono text-[11px]">
+                    <td className="py-3 px-3 font-semibold text-white font-sans max-w-[200px] truncate" title={b.filename}>
+                      {b.filename}
+                    </td>
+                    <td className="py-3 px-3 text-slate-300 whitespace-nowrap">
                       {new Date(b.created_at).toLocaleString()}
                     </td>
-                    <td className="py-3 px-3 text-rose-400 font-bold">{b.records_count} records</td>
-                    <td className="py-3 px-3 text-slate-400">{Math.round((b.size_bytes || 0) / 1024)} KB</td>
-                    <td className="py-3 px-3 text-right font-sans">
+                    <td className="py-3 px-3 text-rose-400 font-bold whitespace-nowrap">{b.records_count} records</td>
+                    <td className="py-3 px-3 text-slate-400 whitespace-nowrap">{Math.round((b.size_bytes || 0) / 1024)} KB</td>
+                    <td className="py-3 px-3 text-center font-sans whitespace-nowrap">
                       <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-[10px] font-bold">
-                        {b.status}
+                        {b.status || 'AVAILABLE'}
                       </span>
+                    </td>
+                    <td className="py-3 px-3 text-right font-sans whitespace-nowrap">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadSnapshotFile(b.filename)}
+                          title="Download this backup file (.json)"
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition"
+                        >
+                          <Download className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="hidden sm:inline">Download</span>
+                        </button>
+
+                        {['SUPER_ADMIN', 'ENGINEER', 'ADMIN'].includes(user?.role) && (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreFromSnapshotFile(b.filename)}
+                            disabled={restoring}
+                            title="Restore database directly from this snapshot"
+                            className="px-2.5 py-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-lg text-xs font-semibold flex items-center space-x-1 transition disabled:opacity-50"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                            <span className="hidden sm:inline">Restore</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
