@@ -695,7 +695,8 @@ router.get('/daily', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) => {
   const leaveCount = records.filter((r) => r.is_leave || r.status.startsWith('Leave')).length;
   const holidayCount = records.filter((r) => r.is_holiday || r.is_weekly_off).length;
 
-  const totalOtMinutes = records.reduce((sum, r) => sum + (r.ot_minutes || 0), 0);
+  // Overtime rule: less than half an hour (30 minutes) is not considered overtime
+  const totalOtMinutes = records.reduce((sum, r) => sum + (r.ot_minutes && r.ot_minutes >= 30 ? r.ot_minutes : 0), 0);
   const totalRegularMinutes = records.reduce((sum, r) => sum + (r.regular_minutes || 0), 0);
 
   res.json({
@@ -764,7 +765,8 @@ router.get('/monthly', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
 
     const totalMinutes = empAtt.reduce((sum, a) => sum + (a.total_minutes || 0), 0);
     const regularMinutes = empAtt.reduce((sum, a) => sum + (a.regular_minutes || (a.total_minutes || 0)), 0);
-    const otMinutes = empAtt.reduce((sum, a) => sum + (a.ot_minutes || 0), 0);
+    // Overtime rule: less than half an hour (30 minutes) is not considered overtime
+    const otMinutes = empAtt.reduce((sum, a) => sum + (a.ot_minutes && a.ot_minutes >= 30 ? a.ot_minutes : 0), 0);
 
     const totalHoursFormatted = minutesToHoursFormatted(totalMinutes);
     const regularHoursFormatted = minutesToHoursFormatted(regularMinutes);
@@ -850,8 +852,9 @@ router.post('/manual', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
     punchOutDisplay = formatBahrainTime(punchOutIso);
   }
 
-  const { total_minutes, total_hours_formatted } = calculateWorkingTime(punchInIso, punchOutIso);
-  const finalStatus = status || determineAttendanceStatus(punchInIso, punchOutIso);
+  const settings = db.get('settings') || {};
+  const workingTime = calculateWorkingTime(punchInIso, punchOutIso, date, settings);
+  const finalStatus = status || determineAttendanceStatus(punchInIso, punchOutIso, settings, date);
 
   let record = null;
   if (existing) {
@@ -862,8 +865,16 @@ router.post('/manual', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
       punch_in_display: punchInDisplay || existing.punch_in_display,
       punch_out_display: punchOutDisplay || existing.punch_out_display,
       status: finalStatus,
-      total_minutes,
-      total_hours_formatted,
+      total_minutes: workingTime.total_minutes,
+      total_hours_formatted: workingTime.total_hours_formatted,
+      regular_minutes: workingTime.regular_minutes,
+      regular_hours_formatted: workingTime.regular_hours_formatted,
+      ot_minutes: workingTime.ot_minutes,
+      ot_hours_formatted: workingTime.ot_hours_formatted,
+      early_ot_minutes: workingTime.early_ot_minutes,
+      late_ot_minutes: workingTime.late_ot_minutes,
+      holiday_ot_minutes: workingTime.holiday_ot_minutes,
+      is_holiday_work: workingTime.is_holiday_work,
       is_manual: true,
       manual_reason: reason,
       manual_by: req.user.id,
@@ -895,8 +906,16 @@ router.post('/manual', requireAuth, requireRole(MANAGEMENT_ROLES), (req, res) =>
       punch_in_display: punchInDisplay,
       punch_out_display: punchOutDisplay,
       status: finalStatus,
-      total_minutes,
-      total_hours_formatted,
+      total_minutes: workingTime.total_minutes,
+      total_hours_formatted: workingTime.total_hours_formatted,
+      regular_minutes: workingTime.regular_minutes,
+      regular_hours_formatted: workingTime.regular_hours_formatted,
+      ot_minutes: workingTime.ot_minutes,
+      ot_hours_formatted: workingTime.ot_hours_formatted,
+      early_ot_minutes: workingTime.early_ot_minutes,
+      late_ot_minutes: workingTime.late_ot_minutes,
+      holiday_ot_minutes: workingTime.holiday_ot_minutes,
+      is_holiday_work: workingTime.is_holiday_work,
       is_manual: true,
       manual_reason: reason,
       manual_by: req.user.id,
@@ -1031,8 +1050,8 @@ router.patch('/corrections/:id/review', requireAuth, requireRole(MANAGEMENT_ROLE
       punchOutDisplay = formatBahrainTime(punchOutIso);
     }
 
-    const { total_minutes, total_hours_formatted } = calculateWorkingTime(punchInIso, punchOutIso);
-    const finalStatus = determineAttendanceStatus(punchInIso, punchOutIso, settings);
+    const workingTime = calculateWorkingTime(punchInIso, punchOutIso, date, settings);
+    const finalStatus = determineAttendanceStatus(punchInIso, punchOutIso, settings, date);
 
     if (correction.attendance_id) {
       const existing = db.findById('attendance', correction.attendance_id);
@@ -1043,8 +1062,16 @@ router.patch('/corrections/:id/review', requireAuth, requireRole(MANAGEMENT_ROLE
           punch_in_display: punchInDisplay || existing.punch_in_display,
           punch_out_display: punchOutDisplay || existing.punch_out_display,
           status: 'Corrected',
-          total_minutes,
-          total_hours_formatted,
+          total_minutes: workingTime.total_minutes,
+          total_hours_formatted: workingTime.total_hours_formatted,
+          regular_minutes: workingTime.regular_minutes,
+          regular_hours_formatted: workingTime.regular_hours_formatted,
+          ot_minutes: workingTime.ot_minutes,
+          ot_hours_formatted: workingTime.ot_hours_formatted,
+          early_ot_minutes: workingTime.early_ot_minutes,
+          late_ot_minutes: workingTime.late_ot_minutes,
+          holiday_ot_minutes: workingTime.holiday_ot_minutes,
+          is_holiday_work: workingTime.is_holiday_work,
         });
       }
     } else {
@@ -1063,9 +1090,16 @@ router.patch('/corrections/:id/review', requireAuth, requireRole(MANAGEMENT_ROLE
         punch_in_display: punchInDisplay,
         punch_out_display: punchOutDisplay,
         status: 'Corrected',
-        total_minutes,
-        total_hours_formatted,
-        is_manual: true,
+        total_minutes: workingTime.total_minutes,
+        total_hours_formatted: workingTime.total_hours_formatted,
+        regular_minutes: workingTime.regular_minutes,
+        regular_hours_formatted: workingTime.regular_hours_formatted,
+        ot_minutes: workingTime.ot_minutes,
+        ot_hours_formatted: workingTime.ot_hours_formatted,
+        early_ot_minutes: workingTime.early_ot_minutes,
+        late_ot_minutes: workingTime.late_ot_minutes,
+        holiday_ot_minutes: workingTime.holiday_ot_minutes,
+        is_holiday_work: workingTime.is_holiday_work,
       });
     }
   }

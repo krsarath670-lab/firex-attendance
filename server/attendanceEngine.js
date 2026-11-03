@@ -197,16 +197,19 @@ export function calculateWorkingTime(punchInIso, punchOutIso, dateStr = null, se
 
   // If worked on Friday or Public Holiday, 100% of working time is Holiday Overtime
   if (schedule.is_holiday) {
+    const raw_ot = total_minutes;
+    // Overtime rule: less than half an hour (30 minutes) is not considered overtime
+    const ot_minutes = raw_ot >= 30 ? raw_ot : 0;
     return {
       total_minutes,
       total_hours_formatted: minutesToHoursFormatted(total_minutes),
       regular_minutes: 0,
       regular_hours_formatted: '0h 00m',
-      ot_minutes: total_minutes,
-      ot_hours_formatted: minutesToHoursFormatted(total_minutes),
+      ot_minutes,
+      ot_hours_formatted: minutesToHoursFormatted(ot_minutes),
       early_ot_minutes: 0,
       late_ot_minutes: 0,
-      holiday_ot_minutes: total_minutes,
+      holiday_ot_minutes: ot_minutes,
       is_holiday_work: true,
     };
   }
@@ -240,7 +243,16 @@ export function calculateWorkingTime(punchInIso, punchOutIso, dateStr = null, se
   const regularEnd = Math.min(punchOutMinutes, shiftEnd);
   const regular_minutes = Math.max(0, regularEnd - regularStart);
 
-  const ot_minutes = early_ot_minutes + late_ot_minutes;
+  const raw_ot_minutes = early_ot_minutes + late_ot_minutes;
+
+  // Overtime rule: less than half an hour (30 minutes) is not considered overtime
+  let ot_minutes = 0;
+  if (raw_ot_minutes >= 30) {
+    ot_minutes = raw_ot_minutes;
+  } else {
+    early_ot_minutes = 0;
+    late_ot_minutes = 0;
+  }
 
   return {
     total_minutes,

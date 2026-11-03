@@ -60,6 +60,19 @@ async function runTest() {
       status: 'Present',
     },
     {
+      attendance_date: '2026-09-03', // 20 minutes overtime (less than half an hour -> 0 OT)
+      employee_id: testEmployee.employee_id,
+      punch_in: '2026-09-03T04:30:00.000Z',
+      punch_out: '2026-09-03T13:50:00.000Z',
+      punch_in_display: '07:30 AM',
+      punch_out_display: '04:50 PM',
+      total_minutes: 560,
+      regular_minutes: 540,
+      ot_minutes: 20, // should be treated as 0 OT
+      site_name: 'Maintenance',
+      status: 'Present',
+    },
+    {
       attendance_date: '2026-09-05', // Saturday
       employee_id: testEmployee.employee_id,
       punch_in: '2026-09-05T04:30:00.000Z',
@@ -169,6 +182,20 @@ async function runTest() {
   console.log('  Overtime (E13):', ws.getCell('E13').value);
   console.log('  Project (F13):', ws.getCell('F13').value);
   console.log('  Total Hours (G13):', ws.getCell('G13').value);
+
+  // Check Day 3 (Row 15: 2026-09-03) - 20 mins overtime (< 30m threshold -> 0 OT)
+  console.log('✓ Day 3 (Row 15 - 20 mins OT):');
+  const e15 = ws.getCell('E15').value;
+  console.log('  Overtime formula (E15):', e15);
+  if (!e15.formula.includes('TIME(0,30,0)')) {
+    throw new Error(`Expected overtime formula to check TIME(0,30,0), got: ${e15.formula}`);
+  }
+  // Result should be 0 (00:00:00)
+  const e15ResDate = new Date(e15.result);
+  if (e15ResDate.getHours() !== 0 && e15ResDate.getMinutes() !== 0) {
+    throw new Error(`Expected Day 3 overtime to be 0 for < 30min OT, got: ${e15.result}`);
+  }
+  console.log('  ✓ Verified 20 mins OT correctly evaluated as 0 OT in timesheet!');
 
   // Check Day 4 (Row 16: Friday Off)
   const friVal = ws.getCell('C16').value;

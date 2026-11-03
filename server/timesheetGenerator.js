@@ -309,7 +309,11 @@ export async function generateMonthlyTimesheet({ employee, month, year, attendan
         // Calculate hours and overtime using company rules
         const calc = calculateWorkingTime(attRecord.punch_in, attRecord.punch_out, dateStr, settings);
         const totalMins = calc.total_minutes || attRecord.total_minutes || 0;
-        const otMins = calc.ot_minutes !== undefined ? calc.ot_minutes : (attRecord.ot_minutes || 0);
+        let otMins = calc.ot_minutes !== undefined ? calc.ot_minutes : (attRecord.ot_minutes || 0);
+        // Overtime rule: less than half an hour (30 minutes) is not considered overtime
+        if (otMins < 30) {
+          otMins = 0;
+        }
 
         totalOvertimeMinutes += otMins;
 
@@ -332,15 +336,17 @@ export async function generateMonthlyTimesheet({ employee, month, year, attendan
         };
 
         // Overtime (Column E)
+        // Overtime rule: less than half an hour (30 minutes) is not considered overtime
         if (isFriday || schedule.is_holiday) {
-          // On Friday or Holiday, 100% of working time is overtime
+          // On Friday or Holiday, 100% of working time is overtime if >= 30 minutes
           cellE.value = {
-            formula: `G${rowIdx}`,
+            formula: `IF(G${rowIdx}>=TIME(0,30,0),G${rowIdx},0)`,
             result: toExcelTimeDate(Math.floor(otMins / 60), otMins % 60),
           };
         } else {
+          // Workday: Overtime is only considered if >= 30 minutes (TIME(0,30,0))
           cellE.value = {
-            formula: `MAX(0,G${rowIdx}-I${rowIdx})`,
+            formula: `IF((G${rowIdx}-I${rowIdx})>=TIME(0,30,0),G${rowIdx}-I${rowIdx},0)`,
             result: toExcelTimeDate(Math.floor(otMins / 60), otMins % 60),
           };
         }
